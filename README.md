@@ -1,4 +1,4 @@
-# reimagined-guacamole
+# gh-follower-changes
 
 GitHub Followers Tracker - A bash script to track GitHub followers and maintain a changelog of changes.
 
