@@ -27,11 +27,11 @@ echo "Setting up test scenario..."
 rm -rf "$DATA_DIR" "$CHANGELOG"
 mkdir -p "$DATA_DIR"
 
-# Get current day of year
-CURRENT_DAY=$(date +%j)
+# Get current date identifier (YYYY-DOY, e.g., 2026-018)
+CURRENT_DAY=$(date +%Y-%j)
 
-# Calculate previous day (date handles leap years and year boundaries automatically)
-PREV_DAY=$(date -d "yesterday" +%j)
+# Calculate previous date identifier (date handles leap years and year boundaries automatically)
+PREV_DAY=$(date -d "yesterday" +%Y-%j)
 
 echo "Current day: $CURRENT_DAY"
 echo "Previous day: $PREV_DAY"
