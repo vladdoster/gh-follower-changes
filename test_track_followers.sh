@@ -5,6 +5,19 @@
 
 set -euo pipefail
 
+# Temporary file for cleanup
+TEMP_CHANGELOG=""
+
+# Cleanup function
+cleanup() {
+    if [ -n "$TEMP_CHANGELOG" ] && [ -f "$TEMP_CHANGELOG" ]; then
+        rm -f "$TEMP_CHANGELOG"
+    fi
+}
+
+# Set trap to cleanup on exit
+trap cleanup EXIT INT TERM
+
 DATA_DIR="followers_data"
 CHANGELOG="CHANGELOG.md"
 
@@ -17,17 +30,8 @@ mkdir -p "$DATA_DIR"
 # Get current day of year
 CURRENT_DAY=$(date +%j)
 
-# Calculate previous day
-if [ "$CURRENT_DAY" = "001" ]; then
-    PREV_YEAR=$(date -d "yesterday" +%Y)
-    if [ $((PREV_YEAR % 4)) -eq 0 ] && { [ $((PREV_YEAR % 100)) -ne 0 ] || [ $((PREV_YEAR % 400)) -eq 0 ]; }; then
-        PREV_DAY="366"
-    else
-        PREV_DAY="365"
-    fi
-else
-    PREV_DAY=$(date -d "yesterday" +%j)
-fi
+# Calculate previous day (date handles leap years and year boundaries automatically)
+PREV_DAY=$(date -d "yesterday" +%j)
 
 echo "Current day: $CURRENT_DAY"
 echo "Previous day: $PREV_DAY"
@@ -87,61 +91,62 @@ if [ "$NEW_COUNT" -gt 0 ] || [ "$REMOVED_COUNT" -gt 0 ]; then
     
     # Create changelog if it doesn't exist
     if [ ! -f "$CHANGELOG" ]; then
-        echo "# Follower Changelog" > "$CHANGELOG"
-        echo "" >> "$CHANGELOG"
-        echo "This file tracks changes in GitHub followers over time." >> "$CHANGELOG"
-        echo "" >> "$CHANGELOG"
-    fi
-    
-    # Prepare changelog entry
-    CHANGELOG_ENTRY="### $CURRENT_DATE\n\n"
-    
-    if [ "$NEW_COUNT" -gt 0 ]; then
-        CHANGELOG_ENTRY+="#### New Followers\n\n"
-        while IFS= read -r follower; do
-            if [ -n "$follower" ]; then
-                CHANGELOG_ENTRY+="- @$follower\n"
-            fi
-        done <<< "$NEW_FOLLOWERS"
-        CHANGELOG_ENTRY+="\n"
-    fi
-    
-    if [ "$REMOVED_COUNT" -gt 0 ]; then
-        CHANGELOG_ENTRY+="#### Removed Followers\n\n"
-        while IFS= read -r follower; do
-            if [ -n "$follower" ]; then
-                CHANGELOG_ENTRY+="- @$follower\n"
-            fi
-        done <<< "$REMOVED_FOLLOWERS"
-        CHANGELOG_ENTRY+="\n"
+        printf "# Follower Changelog\n\n" > "$CHANGELOG"
+        printf "This file tracks changes in GitHub followers over time.\n\n" >> "$CHANGELOG"
     fi
     
     # Create temporary file with new entry at the top
     TEMP_CHANGELOG=$(mktemp)
     
-    # Read existing changelog
+    # Write the new entry
+    {
+        printf "### %s\n\n" "$CURRENT_DATE"
+        
+        if [ "$NEW_COUNT" -gt 0 ]; then
+            printf "#### New Followers\n\n"
+            while IFS= read -r follower; do
+                if [ -n "$follower" ]; then
+                    printf -- "- @%s\n" "$follower"
+                fi
+            done <<< "$NEW_FOLLOWERS"
+            printf "\n"
+        fi
+        
+        if [ "$REMOVED_COUNT" -gt 0 ]; then
+            printf "#### Removed Followers\n\n"
+            while IFS= read -r follower; do
+                if [ -n "$follower" ]; then
+                    printf -- "- @%s\n" "$follower"
+                fi
+            done <<< "$REMOVED_FOLLOWERS"
+            printf "\n"
+        fi
+    } > "$TEMP_CHANGELOG"
+    
+    # Prepend to existing changelog
     if [ -f "$CHANGELOG" ]; then
-        # Find the first h3 header or end of file
+        # Find where to insert - look for first h3 header
         if grep -q "^### " "$CHANGELOG"; then
-            # Insert before first h3 header
-            awk -v entry="$CHANGELOG_ENTRY" '
+            # Insert before first h3 header using awk
+            awk '
                 BEGIN { inserted=0 }
-                /^### / && !inserted { print entry; inserted=1 }
+                /^### / && !inserted {
+                    system("cat '"$TEMP_CHANGELOG"'")
+                    inserted=1
+                }
                 { print }
-            ' "$CHANGELOG" > "$TEMP_CHANGELOG"
+            ' "$CHANGELOG" > "${TEMP_CHANGELOG}.final"
+            mv "${TEMP_CHANGELOG}.final" "$CHANGELOG"
         else
-            # Append after header section
-            {
-                head -n 4 "$CHANGELOG"
-                echo -e "$CHANGELOG_ENTRY"
-                tail -n +5 "$CHANGELOG"
-            } > "$TEMP_CHANGELOG"
+            # No existing entries, append after the whole file
+            cat "$TEMP_CHANGELOG" >> "$CHANGELOG"
         fi
     else
-        echo -e "$CHANGELOG_ENTRY" > "$TEMP_CHANGELOG"
+        # No changelog exists yet
+        mv "$TEMP_CHANGELOG" "$CHANGELOG"
+        TEMP_CHANGELOG=""  # Prevent cleanup of moved file
     fi
     
-    mv "$TEMP_CHANGELOG" "$CHANGELOG"
     echo "Changelog created successfully!"
 fi
 

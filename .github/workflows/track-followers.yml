@@ -1,0 +1,53 @@
+name: Track GitHub Followers
+
+on:
+  schedule:
+    # Run every day at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  track-followers:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for proper git operations
+      
+      - name: Set up Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+      
+      - name: Track followers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Get the repository owner
+          REPO_OWNER="${{ github.repository_owner }}"
+          
+          # Run the tracking script
+          chmod +x track_followers.sh
+          ./track_followers.sh "$REPO_OWNER"
+      
+      - name: Commit and push changes
+        run: |
+          # Add changes
+          git add followers_data/ CHANGELOG.md
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            # Commit and push
+            git commit -m "Update follower data for $(date +%Y-%m-%d)"
+            git push
+          fi

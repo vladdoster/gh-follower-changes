@@ -9,8 +9,11 @@ GitHub Followers Tracker - A bash script to track GitHub followers and maintain 
 - Automatically detects new and removed followers by comparing with previous day
 - Generates a markdown changelog with h3 headers for each date
 - Lists new and removed followers in separate subsections
+- Automated daily tracking via GitHub Actions workflow
 
 ## Usage
+
+### Manual Execution
 
 ```bash
 ./track_followers.sh <github_username>
@@ -20,6 +23,18 @@ Example:
 ```bash
 ./track_followers.sh vladdoster
 ```
+
+### Automated Tracking
+
+The repository includes a GitHub Actions workflow that automatically runs the script every day at midnight UTC. The workflow:
+- Runs `track_followers.sh` for the repository owner
+- Commits and pushes any changes to `followers_data/` and `CHANGELOG.md`
+- Can also be triggered manually from the Actions tab
+
+To enable automated tracking:
+1. Ensure the workflow file `.github/workflows/track-followers.yml` is present
+2. The workflow has `contents: write` permission to commit changes
+3. The workflow will automatically track the repository owner's followers
 
 ## How It Works
 
@@ -35,13 +50,16 @@ Example:
 
 ```
 .
-├── track_followers.sh       # Main script
-├── test_track_followers.sh  # Test script with mock data
-├── followers_data/          # Directory containing daily follower snapshots
-│   ├── 001                  # Jan 1st followers
-│   ├── 002                  # Jan 2nd followers
+├── .github/
+│   └── workflows/
+│       └── track-followers.yml  # GitHub Actions workflow
+├── track_followers.sh           # Main script
+├── test_track_followers.sh      # Test script with mock data
+├── followers_data/              # Directory containing daily follower snapshots
+│   ├── 001                      # Jan 1st followers
+│   ├── 002                      # Jan 2nd followers
 │   └── ...
-└── CHANGELOG.md             # Changelog of follower changes
+└── CHANGELOG.md                 # Changelog of follower changes
 ```
 
 ## Testing
@@ -73,7 +91,10 @@ Follow the prompts to authenticate with your GitHub account.
 
 ## Notes
 
-- The script handles leap years correctly when calculating the previous day
-- Followers are sorted alphabetically in the data files
+- The script validates GitHub usernames to ensure they contain only alphanumeric characters and hyphens
+- The script handles leap years and year boundaries automatically using the `date` command
+- Followers are sorted alphabetically in the data files for reliable comparison
 - The changelog shows the most recent changes at the top
 - Each run overwrites the current day's file with fresh data
+- Temporary files are automatically cleaned up on script exit
+- The script uses `printf` for safe output handling, avoiding issues with special characters

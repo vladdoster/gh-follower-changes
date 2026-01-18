@@ -5,6 +5,19 @@
 
 set -euo pipefail
 
+# Temporary file for cleanup
+TEMP_CHANGELOG=""
+
+# Cleanup function
+cleanup() {
+    if [ -n "$TEMP_CHANGELOG" ] && [ -f "$TEMP_CHANGELOG" ]; then
+        rm -f "$TEMP_CHANGELOG"
+    fi
+}
+
+# Set trap to cleanup on exit
+trap cleanup EXIT INT TERM
+
 # Configuration
 GITHUB_USERNAME="${1:-}"
 DATA_DIR="followers_data"
@@ -42,6 +55,11 @@ if [ -z "$GITHUB_USERNAME" ]; then
     usage
 fi
 
+# Validate GitHub username format (alphanumeric and hyphens only)
+if ! [[ "$GITHUB_USERNAME" =~ ^[a-zA-Z0-9-]+$ ]]; then
+    error "Invalid GitHub username format. Username must contain only alphanumeric characters and hyphens."
+fi
+
 # Create data directory if it doesn't exist
 mkdir -p "$DATA_DIR"
 
@@ -49,18 +67,8 @@ mkdir -p "$DATA_DIR"
 CURRENT_DAY=$(date +%j)
 CURRENT_FILE="$DATA_DIR/$CURRENT_DAY"
 
-# Get previous day of year
-if [ "$CURRENT_DAY" = "001" ]; then
-    # If it's the first day of year, previous day is last day of previous year
-    PREV_YEAR=$(date -d "yesterday" +%Y)
-    if [ $((PREV_YEAR % 4)) -eq 0 ] && { [ $((PREV_YEAR % 100)) -ne 0 ] || [ $((PREV_YEAR % 400)) -eq 0 ]; }; then
-        PREV_DAY="366"
-    else
-        PREV_DAY="365"
-    fi
-else
-    PREV_DAY=$(date -d "yesterday" +%j)
-fi
+# Get previous day of year (date handles leap years and year boundaries automatically)
+PREV_DAY=$(date -d "yesterday" +%j)
 PREV_FILE="$DATA_DIR/$PREV_DAY"
 
 # Function to fetch followers from GitHub API using gh CLI
@@ -73,17 +81,17 @@ fetch_followers() {
     log "Fetching followers for $username..."
     
     # Check if gh CLI is available
-    if ! command -v gh &> /dev/null; then
+    if ! command -v gh > /dev/null; then
         error "GitHub CLI (gh) is not installed. Please install it from https://cli.github.com/"
     fi
     
     # Check if jq is available for JSON parsing
-    if ! command -v jq &> /dev/null; then
+    if ! command -v jq > /dev/null; then
         error "jq is not installed. Please install it for JSON parsing."
     fi
     
     # Check if authenticated with gh
-    if ! gh auth status &> /dev/null; then
+    if ! gh auth status >/dev/null 2>&1; then
         warn "Not authenticated with GitHub CLI. Run 'gh auth login' to authenticate."
         warn "You may hit rate limits for unauthenticated requests."
     fi
@@ -97,7 +105,7 @@ fetch_followers() {
         if [ $exit_code -ne 0 ]; then
             if echo "$response" | grep -q "HTTP 404"; then
                 error "User '$username' not found"
-            elif echo "$response" | grep -q "set the GH_TOKEN"; then
+            elif echo "$response" | grep -Eq "HTTP 401|HTTP 403|set the GH_TOKEN"; then
                 error "GitHub CLI requires authentication. Please run 'gh auth login' or set GH_TOKEN environment variable."
             else
                 error "GitHub API error: $response"
@@ -113,15 +121,16 @@ fetch_followers() {
         fi
         
         # Add followers to array
+        local before_count=${#all_followers[@]}
         while IFS= read -r follower; do
             if [ -n "$follower" ]; then
                 all_followers+=("$follower")
             fi
         done <<< "$followers"
         
-        # Count followers in this page (use array count for accuracy)
-        local count=$(echo "$followers" | grep -c '^' || echo 0)
-        if [ "$count" -lt "$per_page" ]; then
+        # Count followers in this page using the array length for accuracy
+        local page_count=$(( ${#all_followers[@]} - before_count ))
+        if [ "$page_count" -lt "$per_page" ]; then
             break
         fi
         
@@ -129,6 +138,10 @@ fetch_followers() {
     done
     
     # Return all followers, one per line, sorted
+    if [ "${#all_followers[@]}" -eq 0 ]; then
+        # No followers; produce empty output
+        return 0
+    fi
     printf '%s\n' "${all_followers[@]}" | sort
 }
 
@@ -142,11 +155,11 @@ log "Found $FOLLOWER_COUNT followers"
 if [ -f "$PREV_FILE" ]; then
     log "Previous day's file found ($PREV_FILE). Comparing..."
     
-    # Find new followers (in current but not in previous)
-    NEW_FOLLOWERS=$(comm -13 "$PREV_FILE" "$CURRENT_FILE")
+    # Find new followers (in current but not in previous) - sort both files for reliable comparison
+    NEW_FOLLOWERS=$(comm -13 <(sort "$PREV_FILE") <(sort "$CURRENT_FILE"))
     
     # Find removed followers (in previous but not in current)
-    REMOVED_FOLLOWERS=$(comm -23 "$PREV_FILE" "$CURRENT_FILE")
+    REMOVED_FOLLOWERS=$(comm -23 <(sort "$PREV_FILE") <(sort "$CURRENT_FILE"))
     
     # Count changes
     NEW_COUNT=$(echo "$NEW_FOLLOWERS" | grep -c . || true)
@@ -160,61 +173,62 @@ if [ -f "$PREV_FILE" ]; then
         
         # Create changelog if it doesn't exist
         if [ ! -f "$CHANGELOG" ]; then
-            echo "# Follower Changelog" > "$CHANGELOG"
-            echo "" >> "$CHANGELOG"
-            echo "This file tracks changes in GitHub followers over time." >> "$CHANGELOG"
-            echo "" >> "$CHANGELOG"
-        fi
-        
-        # Prepare changelog entry
-        CHANGELOG_ENTRY="### $CURRENT_DATE\n\n"
-        
-        if [ "$NEW_COUNT" -gt 0 ]; then
-            CHANGELOG_ENTRY+="#### New Followers\n\n"
-            while IFS= read -r follower; do
-                if [ -n "$follower" ]; then
-                    CHANGELOG_ENTRY+="- @$follower\n"
-                fi
-            done <<< "$NEW_FOLLOWERS"
-            CHANGELOG_ENTRY+="\n"
-        fi
-        
-        if [ "$REMOVED_COUNT" -gt 0 ]; then
-            CHANGELOG_ENTRY+="#### Removed Followers\n\n"
-            while IFS= read -r follower; do
-                if [ -n "$follower" ]; then
-                    CHANGELOG_ENTRY+="- @$follower\n"
-                fi
-            done <<< "$REMOVED_FOLLOWERS"
-            CHANGELOG_ENTRY+="\n"
+            printf "# Follower Changelog\n\n" > "$CHANGELOG"
+            printf "This file tracks changes in GitHub followers over time.\n\n" >> "$CHANGELOG"
         fi
         
         # Create temporary file with new entry at the top
         TEMP_CHANGELOG=$(mktemp)
         
-        # Read existing changelog
+        # Write the new entry
+        {
+            printf "### %s\n\n" "$CURRENT_DATE"
+            
+            if [ "$NEW_COUNT" -gt 0 ]; then
+                printf "#### New Followers\n\n"
+                while IFS= read -r follower; do
+                    if [ -n "$follower" ]; then
+                        printf -- "- @%s\n" "$follower"
+                    fi
+                done <<< "$NEW_FOLLOWERS"
+                printf "\n"
+            fi
+            
+            if [ "$REMOVED_COUNT" -gt 0 ]; then
+                printf "#### Removed Followers\n\n"
+                while IFS= read -r follower; do
+                    if [ -n "$follower" ]; then
+                        printf -- "- @%s\n" "$follower"
+                    fi
+                done <<< "$REMOVED_FOLLOWERS"
+                printf "\n"
+            fi
+        } > "$TEMP_CHANGELOG"
+        
+        # Prepend to existing changelog
         if [ -f "$CHANGELOG" ]; then
-            # Find the first h3 header or end of file
+            # Find where to insert - look for first h3 header
             if grep -q "^### " "$CHANGELOG"; then
-                # Insert before first h3 header
-                awk -v entry="$CHANGELOG_ENTRY" '
+                # Insert before first h3 header using awk
+                awk '
                     BEGIN { inserted=0 }
-                    /^### / && !inserted { print entry; inserted=1 }
+                    /^### / && !inserted {
+                        system("cat '"$TEMP_CHANGELOG"'")
+                        inserted=1
+                    }
                     { print }
-                ' "$CHANGELOG" > "$TEMP_CHANGELOG"
+                ' "$CHANGELOG" > "${TEMP_CHANGELOG}.final"
+                mv "${TEMP_CHANGELOG}.final" "$CHANGELOG"
             else
-                # Append after header section
-                {
-                    head -n 4 "$CHANGELOG"
-                    echo -e "$CHANGELOG_ENTRY"
-                    tail -n +5 "$CHANGELOG"
-                } > "$TEMP_CHANGELOG"
+                # No existing entries, append after the whole file
+                cat "$TEMP_CHANGELOG" >> "$CHANGELOG"
             fi
         else
-            echo -e "$CHANGELOG_ENTRY" > "$TEMP_CHANGELOG"
+            # No changelog exists yet
+            mv "$TEMP_CHANGELOG" "$CHANGELOG"
+            TEMP_CHANGELOG=""  # Prevent cleanup of moved file
         fi
         
-        mv "$TEMP_CHANGELOG" "$CHANGELOG"
         log "Changelog updated: $CHANGELOG"
     else
         log "No changes in followers"
