@@ -39,7 +39,6 @@ warn() {
 
 # Validate input
 if [ -z "$GITHUB_USERNAME" ]; then
-    error "GitHub username is required"
     usage
 fi
 
