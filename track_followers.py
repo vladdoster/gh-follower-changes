@@ -22,6 +22,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def fatal(message: str, *args: object) -> None:
+    """Log an error message and exit."""
+    logger.error(message, *args)
+    sys.exit(1)
+
+
 def usage() -> None:
     """Display usage information and exit."""
     print("Usage: track_followers.py <github_username>")
@@ -57,14 +63,11 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
     except Exception as e:
         error_msg = str(e)
         if "404" in error_msg:
-            logger.error("User '%s' not found", username)
-            sys.exit(1)
+            fatal("User '%s' not found", username)
         elif "401" in error_msg or "403" in error_msg:
-            logger.error("GitHub API requires authentication. Please set GH_TOKEN or GITHUB_TOKEN environment variable.")
-            sys.exit(1)
+            fatal("GitHub API requires authentication. Please set GH_TOKEN or GITHUB_TOKEN environment variable.")
         else:
-            logger.error("GitHub API error: %s", error_msg)
-            sys.exit(1)
+            fatal("GitHub API error: %s", error_msg)
     
     return sorted(all_followers)
 
@@ -156,8 +159,7 @@ def main() -> None:
     
     # Validate username
     if not validate_username(github_username):
-        logger.error("Invalid GitHub username format. Username must contain only alphanumeric characters and hyphens.")
-        sys.exit(1)
+        fatal("Invalid GitHub username format. Username must contain only alphanumeric characters and hyphens.")
     
     # Configuration
     data_dir = Path("followers_data")
