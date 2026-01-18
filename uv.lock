@@ -1,0 +1,48 @@
+version = 1
+revision = 3
+requires-python = ">=3.10"
+
+[[package]]
+name = "fastcore"
+version = "1.12.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8d/9f/10ba070937da0ddab01b23dc01f64f521e3632d5ff1897bc3d73a02ba29f/fastcore-1.12.2.tar.gz", hash = "sha256:01c0c9e19cd0c3cb7a208311d2826da3f0269babc32bd9aa21c7b7976ad5626e", size = 91650, upload-time = "2026-01-18T00:52:35.387Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/12/97/b0f340e715629fdab003fa5af9b32264ae0aaa04c8521694cb60a3007f2c/fastcore-1.12.2-py3-none-any.whl", hash = "sha256:11fccdc9dc0a13a0d15f6b63bed3f45e6bc8ab73458f8795300d2bd8e35d8ba6", size = 94347, upload-time = "2026-01-18T00:52:33.555Z" },
+]
+
+[[package]]
+name = "gh-follower-changes"
+version = "1.0.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "ghapi" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "ghapi", specifier = ">=1.0.6" }]
+
+[[package]]
+name = "ghapi"
+version = "1.0.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "fastcore" },
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5c/1a/6bff5174943e529949b0b5f2df5c86a29c16249c1715122179d3dadf4f2a/ghapi-1.0.9.tar.gz", hash = "sha256:1551300d38f439da39ea9dce2beb197e8485489bafaee2bbfbf1843bc6c59081", size = 73477, upload-time = "2026-01-15T22:43:16.994Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4b/1a/c80ae4e4e2bf24b1194ebd8319bcf7247615281da53ed606062c15a1c28e/ghapi-1.0.9-py3-none-any.whl", hash = "sha256:42593d773a16df5653419487bf12960ff780b3d27b8551fd6160b0c8fe31ed07", size = 70369, upload-time = "2026-01-15T22:43:15.46Z" },
+]
+
+[[package]]
+name = "packaging"
+version = "25.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a1/d4/1fc4078c65507b51b96ca8f8c3ba19e6a61c8253c72794544580a7b6c24d/packaging-25.0.tar.gz", hash = "sha256:d443872c98d677bf60f6a1f2f8c1cb748e8fe762d2bf9d3148b5599295b0fc4f", size = 165727, upload-time = "2025-04-19T11:48:59.673Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/20/12/38679034af332785aac8774540895e234f4d07f7545804097de4b666afd8/packaging-25.0-py3-none-any.whl", hash = "sha256:29572ef2b1f17581046b3a2227d5c611fb25ec70ca1ba8554b24b0e69331a484", size = 66469, upload-time = "2025-04-19T11:48:57.875Z" },
+]
