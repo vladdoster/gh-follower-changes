@@ -269,12 +269,12 @@ elif [ "$CURRENT_DAY" = "001" ]; then
                 
                 if [ "$NEW_COUNT" -gt 0 ]; then
                     echo "- New followers ($NEW_COUNT):"
-                    echo "$NEW_FOLLOWERS" | sed 's/^/  - /'
+                    echo "$NEW_FOLLOWERS" | sed 's/^/  - @/'
                 fi
                 
                 if [ "$REMOVED_COUNT" -gt 0 ]; then
                     echo "- Lost followers ($REMOVED_COUNT):"
-                    echo "$REMOVED_FOLLOWERS" | sed 's/^/  - /'
+                    echo "$REMOVED_FOLLOWERS" | sed 's/^/  - @/'
                 fi
                 
                 echo
