@@ -63,7 +63,7 @@ else
 fi
 PREV_FILE="$DATA_DIR/$PREV_DAY"
 
-# Function to fetch followers from GitHub API
+# Function to fetch followers from GitHub API using gh CLI
 fetch_followers() {
     local username=$1
     local page=1
@@ -72,14 +72,31 @@ fetch_followers() {
     
     log "Fetching followers for $username..."
     
+    # Check if gh CLI is available
+    if ! command -v gh &> /dev/null; then
+        error "GitHub CLI (gh) is not installed. Please install it from https://cli.github.com/"
+    fi
+    
+    # Check if authenticated with gh
+    if ! gh auth status &> /dev/null; then
+        warn "Not authenticated with GitHub CLI. Run 'gh auth login' to authenticate."
+        warn "You may hit rate limits for unauthenticated requests."
+    fi
+    
     while true; do
-        # Fetch followers page by page
-        local response=$(curl -s "https://api.github.com/users/$username/followers?per_page=$per_page&page=$page")
+        # Fetch followers page by page using gh api
+        local response=$(gh api "/users/$username/followers?per_page=$per_page&page=$page" 2>&1)
+        local exit_code=$?
         
-        # Check if response is empty or error
-        if echo "$response" | grep -q '"message"'; then
-            local message=$(echo "$response" | grep -o '"message":"[^"]*"' | cut -d'"' -f4)
-            error "GitHub API error: $message"
+        # Check if gh api failed
+        if [ $exit_code -ne 0 ]; then
+            if echo "$response" | grep -q "HTTP 404"; then
+                error "User '$username' not found"
+            elif echo "$response" | grep -q "set the GH_TOKEN"; then
+                error "GitHub CLI requires authentication. Please run 'gh auth login' or set GH_TOKEN environment variable."
+            else
+                error "GitHub API error: $response"
+            fi
         fi
         
         # Extract usernames from JSON response

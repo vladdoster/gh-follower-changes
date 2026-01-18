@@ -23,7 +23,7 @@ Example:
 
 ## How It Works
 
-1. **Fetch Followers**: The script uses the GitHub API to fetch all followers for the specified user
+1. **Fetch Followers**: The script uses the GitHub CLI (`gh api`) to fetch all followers for the specified user
 2. **Save to File**: Followers are saved to `followers_data/XXX` where XXX is the current day of year (001-366)
 3. **Compare with Previous Day**: If a file from the previous day exists, the script compares the two lists
 4. **Generate Changelog**: If there are changes, an entry is added to `CHANGELOG.md` with:
@@ -46,7 +46,7 @@ Example:
 
 ## Testing
 
-A test script is provided to demonstrate the functionality with mock data:
+A test script is provided to demonstrate the functionality with mock data (no GitHub authentication required):
 
 ```bash
 ./test_track_followers.sh
@@ -57,8 +57,18 @@ This creates sample follower data and generates a changelog showing the comparis
 ## Requirements
 
 - bash 4.0+
-- curl (for API requests)
+- GitHub CLI (`gh`) - Install from https://cli.github.com/
 - Standard Unix utilities (date, comm, sort, grep, awk)
+
+## Authentication
+
+The script uses the GitHub CLI (`gh`) to make API calls. You need to authenticate with:
+
+```bash
+gh auth login
+```
+
+Follow the prompts to authenticate with your GitHub account.
 
 ## Notes
 
