@@ -214,7 +214,8 @@ if [ -f "$PREV_FILE" ]; then
             # Changelog exists - find where to insert
             if grep -q "^### " "$CHANGELOG"; then
                 if grep -q "${CURRENT_DATE}" "$CHANGELOG"; then
-                    return 0
+                    warn "$CURRENT_DATE already in changelog"
+                    exit 0
                 fi
                 # Insert before first h3 header using awk with getline for security
                 if [ ! -f "$TEMP_CHANGELOG" ] || [ ! -r "$TEMP_CHANGELOG" ]; then
