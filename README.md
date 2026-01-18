@@ -5,7 +5,7 @@ GitHub Followers Tracker - A bash script to track GitHub followers and maintain 
 ## Features
 
 - Retrieves followers for a specified GitHub user
-- Saves followers to a file named by day of year (001-366)
+- Saves followers to a file named with year and day of year (YYYY-DOY format, e.g., 2026-018)
 - Automatically detects new and removed followers by comparing with previous day
 - Generates a markdown changelog with h3 headers for each date
 - Lists new and removed followers in separate subsections
@@ -39,7 +39,7 @@ To enable automated tracking:
 ## How It Works
 
 1. **Fetch Followers**: The script uses the GitHub CLI (`gh api`) to fetch all followers for the specified user
-2. **Save to File**: Followers are saved to `followers_data/XXX` where XXX is the current day of year (001-366)
+2. **Save to File**: Followers are saved to `followers_data/YYYY-DOY` where YYYY is the year and DOY is the day of year (e.g., 2026-018 for January 18, 2026)
 3. **Compare with Previous Day**: If a file from the previous day exists, the script compares the two lists
 4. **Generate Changelog**: If there are changes, an entry is added to `CHANGELOG.md` with:
    - An h3 header with the current date
@@ -56,8 +56,8 @@ To enable automated tracking:
 ├── track_followers.sh           # Main script
 ├── test_track_followers.sh      # Test script with mock data
 ├── followers_data/              # Directory containing daily follower snapshots
-│   ├── 001                      # Jan 1st followers
-│   ├── 002                      # Jan 2nd followers
+│   ├── 2026-001                 # Jan 1st, 2026 followers
+│   ├── 2026-002                 # Jan 2nd, 2026 followers
 │   └── ...
 └── CHANGELOG.md                 # Changelog of follower changes
 ```
@@ -74,10 +74,11 @@ This creates sample follower data and generates a changelog showing the comparis
 
 ## Requirements
 
-- bash 4.0+
+- bash 4.3+ (tested on bash 4.3 and higher; uses process substitution and array operations)
 - GitHub CLI (`gh`) - Install from https://cli.github.com/
 - `jq` - JSON parser for processing API responses
 - Standard Unix utilities (date, comm, sort, grep, awk)
+- **Note**: The script uses GNU `date` command syntax (`date -d "yesterday"`). On macOS/BSD systems, you may need to install GNU coreutils (`brew install coreutils` and use `gdate`) or modify the script to use BSD-compatible syntax (`date -v-1d`).
 
 ## Authentication
 

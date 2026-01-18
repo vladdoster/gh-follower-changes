@@ -209,11 +209,12 @@ if [ -f "$PREV_FILE" ]; then
         if [ -f "$CHANGELOG" ]; then
             # Find where to insert - look for first h3 header
             if grep -q "^### " "$CHANGELOG"; then
-                # Insert before first h3 header using awk
-                awk '
+                # Insert before first h3 header using awk with getline for security
+                awk -v temp_file="$TEMP_CHANGELOG" '
                     BEGIN { inserted=0 }
                     /^### / && !inserted {
-                        system("cat '"$TEMP_CHANGELOG"'")
+                        while ((getline line < temp_file) > 0) print line
+                        close(temp_file)
                         inserted=1
                     }
                     { print }
@@ -232,64 +233,6 @@ if [ -f "$PREV_FILE" ]; then
         log "Changelog updated: $CHANGELOG"
     else
         log "No changes in followers"
-    fi
-elif [ "$CURRENT_DAY" = "001" ]; then
-    # Handle year boundary: on Jan 1, try to use the latest available file from the previous year's data
-    LAST_FILE=$(ls "$DATA_DIR" 2>/dev/null | sort -n | tail -n 1 || true)
-    
-    if [ -n "$LAST_FILE" ] && [ "$LAST_FILE" != "$(basename "$CURRENT_FILE")" ]; then
-        PREV_FILE="$DATA_DIR/$LAST_FILE"
-        log "No previous day's file for yesterday; using last available file from previous year ($PREV_FILE). Comparing..."
-        
-        # Find new followers (in current but not in previous) - sort both files for reliable comparison
-        NEW_FOLLOWERS=$(comm -13 <(sort "$PREV_FILE") <(sort "$CURRENT_FILE"))
-        
-        # Find removed followers (in previous but not in current)
-        REMOVED_FOLLOWERS=$(comm -23 <(sort "$PREV_FILE") <(sort "$CURRENT_FILE"))
-        
-        # Count changes
-        NEW_COUNT=$(echo "$NEW_FOLLOWERS" | grep -c . || true)
-        REMOVED_COUNT=$(echo "$REMOVED_FOLLOWERS" | grep -c . || true)
-        
-        if [ "$NEW_COUNT" -gt 0 ] || [ "$REMOVED_COUNT" -gt 0 ]; then
-            log "Detected changes in followers since last available record"
-            
-            # Prepare changelog entry
-            TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-            TEMP_CHANGELOG=$(mktemp)
-            
-            {
-                echo "## $TIMESTAMP"
-                echo
-                echo "- Total followers: $FOLLOWER_COUNT"
-                
-                if [ "$NEW_COUNT" -gt 0 ]; then
-                    echo "- New followers ($NEW_COUNT):"
-                    echo "$NEW_FOLLOWERS" | sed 's/^/  - @/'
-                fi
-                
-                if [ "$REMOVED_COUNT" -gt 0 ]; then
-                    echo "- Lost followers ($REMOVED_COUNT):"
-                    echo "$REMOVED_FOLLOWERS" | sed 's/^/  - @/'
-                fi
-                
-                echo
-            } > "$TEMP_CHANGELOG"
-            
-            # Prepend to existing changelog if it exists, else create new
-            if [ -f "$CHANGELOG" ]; then
-                cat "$CHANGELOG" >> "$TEMP_CHANGELOG"
-            fi
-            
-            mv "$TEMP_CHANGELOG" "$CHANGELOG"
-            TEMP_CHANGELOG=""
-            
-            log "Changelog updated: $CHANGELOG"
-        else
-            log "No changes in followers"
-        fi
-    else
-        log "No previous data files found. This is the first run or first day of tracking."
     fi
 else
     log "No previous day's file found. This is the first run or first day of tracking."

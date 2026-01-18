@@ -127,11 +127,12 @@ if [ "$NEW_COUNT" -gt 0 ] || [ "$REMOVED_COUNT" -gt 0 ]; then
     if [ -f "$CHANGELOG" ]; then
         # Find where to insert - look for first h3 header
         if grep -q "^### " "$CHANGELOG"; then
-            # Insert before first h3 header using awk
-            awk '
+            # Insert before first h3 header using awk with getline for security
+            awk -v temp_file="$TEMP_CHANGELOG" '
                 BEGIN { inserted=0 }
                 /^### / && !inserted {
-                    system("cat '"$TEMP_CHANGELOG"'")
+                    while ((getline line < temp_file) > 0) print line
+                    close(temp_file)
                     inserted=1
                 }
                 { print }
