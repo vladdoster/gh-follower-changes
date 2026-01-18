@@ -89,14 +89,15 @@ if [ "$NEW_COUNT" -gt 0 ] || [ "$REMOVED_COUNT" -gt 0 ]; then
     # Get current date for changelog
     CURRENT_DATE=$(date +"%Y-%m-%d")
     
-    # Create changelog if it doesn't exist
-    if [ ! -f "$CHANGELOG" ]; then
-        printf "# Follower Changelog\n\n" > "$CHANGELOG"
-        printf "This file tracks changes in GitHub followers over time.\n\n" >> "$CHANGELOG"
-    fi
-    
     # Create temporary file with new entry at the top
-    TEMP_CHANGELOG=$(mktemp)
+    TEMP_CHANGELOG=$(mktemp) || {
+        echo "Error: Failed to create temporary changelog file." >&2
+        exit 1
+    }
+    if [ -z "$TEMP_CHANGELOG" ]; then
+        echo "Error: mktemp did not return a valid filename for temporary changelog." >&2
+        exit 1
+    fi
     
     # Write the new entry
     {
@@ -123,11 +124,15 @@ if [ "$NEW_COUNT" -gt 0 ] || [ "$REMOVED_COUNT" -gt 0 ]; then
         fi
     } > "$TEMP_CHANGELOG"
     
-    # Prepend to existing changelog
+    # Prepend to existing changelog or create new one
     if [ -f "$CHANGELOG" ]; then
-        # Find where to insert - look for first h3 header
+        # Changelog exists - find where to insert
         if grep -q "^### " "$CHANGELOG"; then
             # Insert before first h3 header using awk with getline for security
+            if [ ! -f "$TEMP_CHANGELOG" ] || [ ! -r "$TEMP_CHANGELOG" ]; then
+                echo "Error: Temporary changelog file is not readable." >&2
+                exit 1
+            fi
             awk -v temp_file="$TEMP_CHANGELOG" '
                 BEGIN { inserted=0 }
                 /^### / && !inserted {
@@ -143,9 +148,13 @@ if [ "$NEW_COUNT" -gt 0 ] || [ "$REMOVED_COUNT" -gt 0 ]; then
             cat "$TEMP_CHANGELOG" >> "$CHANGELOG"
         fi
     else
-        # No changelog exists yet
-        mv "$TEMP_CHANGELOG" "$CHANGELOG"
-        TEMP_CHANGELOG=""  # Prevent cleanup of moved file
+        # No changelog exists yet - create with header
+        {
+            printf "# Follower Changelog\n\n"
+            printf "This file tracks changes in GitHub followers over time.\n\n"
+            cat "$TEMP_CHANGELOG"
+        } > "$CHANGELOG"
+        TEMP_CHANGELOG=""  # Prevent cleanup of content that was already moved
     fi
     
     echo "Changelog created successfully!"

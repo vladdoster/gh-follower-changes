@@ -98,17 +98,24 @@ fetch_followers() {
     
     while true; do
         # Fetch followers page by page using gh api
-        local response=$(gh api "/users/$username/followers?per_page=$per_page&page=$page" 2>&1)
-        local exit_code=$?
+        local stderr_file=$(mktemp)
+        local response
+        local exit_code
+        local stderr_output
+        
+        response=$(gh api "/users/$username/followers?per_page=$per_page&page=$page" 2>"$stderr_file")
+        exit_code=$?
+        stderr_output=$(cat "$stderr_file" 2>/dev/null || true)
+        rm -f "$stderr_file"
         
         # Check if gh api failed
         if [ $exit_code -ne 0 ]; then
-            if echo "$response" | grep -q "HTTP 404"; then
+            if echo "$stderr_output" | grep -q "HTTP 404"; then
                 error "User '$username' not found"
-            elif echo "$response" | grep -Eq "HTTP 401|HTTP 403|set the GH_TOKEN"; then
+            elif echo "$stderr_output" | grep -Eq "HTTP 401|HTTP 403|set the GH_TOKEN"; then
                 error "GitHub CLI requires authentication. Please run 'gh auth login' or set GH_TOKEN environment variable."
             else
-                error "GitHub API error: $response"
+                error "GitHub API error: $stderr_output${response:+; }$response"
             fi
         fi
         
@@ -171,14 +178,11 @@ if [ -f "$PREV_FILE" ]; then
         # Get current date for changelog
         CURRENT_DATE=$(date +"%Y-%m-%d")
         
-        # Create changelog if it doesn't exist
-        if [ ! -f "$CHANGELOG" ]; then
-            printf "# Follower Changelog\n\n" > "$CHANGELOG"
-            printf "This file tracks changes in GitHub followers over time.\n\n" >> "$CHANGELOG"
-        fi
-        
         # Create temporary file with new entry at the top
-        TEMP_CHANGELOG=$(mktemp)
+        TEMP_CHANGELOG=$(mktemp) || error "Failed to create temporary changelog file"
+        if [ -z "$TEMP_CHANGELOG" ]; then
+            error "mktemp did not return a filename for temporary changelog"
+        fi
         
         # Write the new entry
         {
@@ -205,11 +209,14 @@ if [ -f "$PREV_FILE" ]; then
             fi
         } > "$TEMP_CHANGELOG"
         
-        # Prepend to existing changelog
+        # Prepend to existing changelog or create new one
         if [ -f "$CHANGELOG" ]; then
-            # Find where to insert - look for first h3 header
+            # Changelog exists - find where to insert
             if grep -q "^### " "$CHANGELOG"; then
                 # Insert before first h3 header using awk with getline for security
+                if [ ! -f "$TEMP_CHANGELOG" ] || [ ! -r "$TEMP_CHANGELOG" ]; then
+                    error "Temporary changelog file is not readable"
+                fi
                 awk -v temp_file="$TEMP_CHANGELOG" '
                     BEGIN { inserted=0 }
                     /^### / && !inserted {
@@ -225,9 +232,13 @@ if [ -f "$PREV_FILE" ]; then
                 cat "$TEMP_CHANGELOG" >> "$CHANGELOG"
             fi
         else
-            # No changelog exists yet
-            mv "$TEMP_CHANGELOG" "$CHANGELOG"
-            TEMP_CHANGELOG=""  # Prevent cleanup of moved file
+            # No changelog exists yet - create with header
+            {
+                printf "# Follower Changelog\n\n"
+                printf "This file tracks changes in GitHub followers over time.\n\n"
+                cat "$TEMP_CHANGELOG"
+            } > "$CHANGELOG"
+            TEMP_CHANGELOG=""  # Prevent cleanup of content that was already moved
         fi
         
         log "Changelog updated: $CHANGELOG"

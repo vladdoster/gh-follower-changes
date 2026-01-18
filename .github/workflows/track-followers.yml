@@ -40,8 +40,8 @@ jobs:
       
       - name: Commit and push changes
         run: |
-          # Add changes
-          git add followers_data/ CHANGELOG.md
+          # Add changes (ignore if files don't exist)
+          git add --ignore-missing followers_data/ CHANGELOG.md
           
           # Check if there are changes to commit
           if git diff --staged --quiet; then
