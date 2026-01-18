@@ -4,6 +4,7 @@ track_followers.py
 Script to track GitHub followers and maintain a changelog
 """
 
+import logging
 import os
 import re
 import sys
@@ -12,28 +13,13 @@ from pathlib import Path
 
 from ghapi.all import GhApi, paged
 
-
-# Colors for output (ANSI escape codes)
-RED = "\033[0;31m"
-GREEN = "\033[0;32m"
-YELLOW = "\033[1;33m"
-NC = "\033[0m"  # No Color
-
-
-def log(message: str) -> None:
-    """Log an info message."""
-    print(f"{GREEN}[INFO]{NC} {message}", file=sys.stderr)
-
-
-def error(message: str) -> None:
-    """Log an error message and exit."""
-    print(f"{RED}[ERROR]{NC} {message}", file=sys.stderr)
-    sys.exit(1)
-
-
-def warn(message: str) -> None:
-    """Log a warning message."""
-    print(f"{YELLOW}[WARN]{NC} {message}", file=sys.stderr)
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler(sys.stderr)],
+)
+logger = logging.getLogger(__name__)
 
 
 def usage() -> None:
@@ -59,7 +45,7 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
     Returns:
         Sorted list of follower usernames
     """
-    log(f"Fetching followers for {username}...")
+    logger.info("Fetching followers for %s...", username)
     
     all_followers = []
     
@@ -71,11 +57,14 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
     except Exception as e:
         error_msg = str(e)
         if "404" in error_msg:
-            error(f"User '{username}' not found")
+            logger.error("User '%s' not found", username)
+            sys.exit(1)
         elif "401" in error_msg or "403" in error_msg:
-            error("GitHub API requires authentication. Please set GH_TOKEN or GITHUB_TOKEN environment variable.")
+            logger.error("GitHub API requires authentication. Please set GH_TOKEN or GITHUB_TOKEN environment variable.")
+            sys.exit(1)
         else:
-            error(f"GitHub API error: {error_msg}")
+            logger.error("GitHub API error: %s", error_msg)
+            sys.exit(1)
     
     return sorted(all_followers)
 
@@ -134,7 +123,7 @@ def update_changelog(
         
         # Check if today's date is already in the changelog
         if date_str in content:
-            warn(f"{date_str} already in changelog")
+            logger.warning("%s already in changelog", date_str)
             return
         
         # Find the first h3 header and insert before it
@@ -154,7 +143,7 @@ def update_changelog(
         header = "# Follower Changelog\n\nThis file tracks changes in GitHub followers over time.\n\n"
         changelog_path.write_text(header + new_entry)
     
-    log(f"Changelog updated: {changelog_path}")
+    logger.info("Changelog updated: %s", changelog_path)
 
 
 def main() -> None:
@@ -167,7 +156,8 @@ def main() -> None:
     
     # Validate username
     if not validate_username(github_username):
-        error("Invalid GitHub username format. Username must contain only alphanumeric characters and hyphens.")
+        logger.error("Invalid GitHub username format. Username must contain only alphanumeric characters and hyphens.")
+        sys.exit(1)
     
     # Configuration
     data_dir = Path("followers_data")
@@ -190,21 +180,21 @@ def main() -> None:
     # ghapi will automatically use GH_TOKEN or GITHUB_TOKEN from environment
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if not token:
-        warn("No GH_TOKEN or GITHUB_TOKEN found. You may hit rate limits for unauthenticated requests.")
+        logger.warning("No GH_TOKEN or GITHUB_TOKEN found. You may hit rate limits for unauthenticated requests.")
     
     api = GhApi(token=token)
     
     # Fetch current followers
-    log("Retrieving followers...")
+    logger.info("Retrieving followers...")
     followers = fetch_followers(api, github_username)
-    log(f"Found {len(followers)} followers")
+    logger.info("Found %d followers", len(followers))
     
     # Save current followers
     save_followers_to_file(followers, current_file)
     
     # Check if previous day's file exists
     if prev_file.exists():
-        log(f"Previous day's file found ({prev_file}). Comparing...")
+        logger.info("Previous day's file found (%s). Comparing...", prev_file)
         
         prev_followers = load_followers_from_file(prev_file)
         current_followers = set(followers)
@@ -219,15 +209,15 @@ def main() -> None:
         removed_count = len(removed_followers)
         
         if new_count > 0 or removed_count > 0:
-            log(f"Changes detected: +{new_count} new, -{removed_count} removed")
+            logger.info("Changes detected: +%d new, -%d removed", new_count, removed_count)
             update_changelog(new_followers, removed_followers, changelog_path, today)
         else:
-            log("No changes in followers")
+            logger.info("No changes in followers")
     else:
-        log("No previous day's file found. This is the first run or first day of tracking.")
+        logger.info("No previous day's file found. This is the first run or first day of tracking.")
     
-    log(f"Followers saved to: {current_file}")
-    log("Done!")
+    logger.info("Followers saved to: %s", current_file)
+    logger.info("Done!")
 
 
 if __name__ == "__main__":
