@@ -63,13 +63,13 @@ fi
 # Create data directory if it doesn't exist
 mkdir -p "$DATA_DIR"
 
-# Get current day of year (001-366)
-CURRENT_DAY=$(date +%j)
-CURRENT_FILE="$DATA_DIR/$CURRENT_DAY"
+# Get current date identifier (YYYY-DOY, e.g., 2026-018)
+CURRENT_DATE_ID=$(date +%Y-%j)
+CURRENT_FILE="$DATA_DIR/$CURRENT_DATE_ID"
 
-# Get previous day of year (date handles leap years and year boundaries automatically)
-PREV_DAY=$(date -d "yesterday" +%j)
-PREV_FILE="$DATA_DIR/$PREV_DAY"
+# Get previous date identifier (handles leap years and year boundaries automatically)
+PREV_DATE_ID=$(date -d "yesterday" +%Y-%j)
+PREV_FILE="$DATA_DIR/$PREV_DATE_ID"
 
 # Function to fetch followers from GitHub API using gh CLI
 fetch_followers() {
@@ -138,6 +138,10 @@ fetch_followers() {
     done
     
     # Return all followers, one per line, sorted
+    if [ "${#all_followers[@]}" -eq 0 ]; then
+        # No followers; produce an empty output so downstream comparisons work correctly
+        return 0
+    fi
     if [ "${#all_followers[@]}" -eq 0 ]; then
         # No followers; produce empty output
         return 0
@@ -232,6 +236,64 @@ if [ -f "$PREV_FILE" ]; then
         log "Changelog updated: $CHANGELOG"
     else
         log "No changes in followers"
+    fi
+elif [ "$CURRENT_DAY" = "001" ]; then
+    # Handle year boundary: on Jan 1, try to use the latest available file from the previous year's data
+    LAST_FILE=$(ls "$DATA_DIR" 2>/dev/null | sort -n | tail -n 1 || true)
+    
+    if [ -n "$LAST_FILE" ] && [ "$LAST_FILE" != "$CURRENT_DAY" ]; then
+        PREV_FILE="$DATA_DIR/$LAST_FILE"
+        log "No previous day's file for yesterday; using last available file from previous year ($PREV_FILE). Comparing..."
+        
+        # Find new followers (in current but not in previous) - sort both files for reliable comparison
+        NEW_FOLLOWERS=$(comm -13 <(sort "$PREV_FILE") <(sort "$CURRENT_FILE"))
+        
+        # Find removed followers (in previous but not in current)
+        REMOVED_FOLLOWERS=$(comm -23 <(sort "$PREV_FILE") <(sort "$CURRENT_FILE"))
+        
+        # Count changes
+        NEW_COUNT=$(echo "$NEW_FOLLOWERS" | grep -c . || true)
+        REMOVED_COUNT=$(echo "$REMOVED_FOLLOWERS" | grep -c . || true)
+        
+        if [ "$NEW_COUNT" -gt 0 ] || [ "$REMOVED_COUNT" -gt 0 ]; then
+            log "Detected changes in followers since last available record"
+            
+            # Prepare changelog entry
+            TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+            TEMP_CHANGELOG=$(mktemp)
+            
+            {
+                echo "## $TIMESTAMP"
+                echo
+                echo "- Total followers: $FOLLOWER_COUNT"
+                
+                if [ "$NEW_COUNT" -gt 0 ]; then
+                    echo "- New followers ($NEW_COUNT):"
+                    echo "$NEW_FOLLOWERS" | sed 's/^/  - /'
+                fi
+                
+                if [ "$REMOVED_COUNT" -gt 0 ]; then
+                    echo "- Lost followers ($REMOVED_COUNT):"
+                    echo "$REMOVED_FOLLOWERS" | sed 's/^/  - /'
+                fi
+                
+                echo
+            } > "$TEMP_CHANGELOG"
+            
+            # Prepend to existing changelog if it exists, else create new
+            if [ -f "$CHANGELOG" ]; then
+                cat "$CHANGELOG" >> "$TEMP_CHANGELOG"
+            fi
+            
+            mv "$TEMP_CHANGELOG" "$CHANGELOG"
+            TEMP_CHANGELOG=""
+            
+            log "Changelog updated: $CHANGELOG"
+        else
+            log "No changes in followers"
+        fi
+    else
+        log "No previous data files found. This is the first run or first day of tracking."
     fi
 else
     log "No previous day's file found. This is the first run or first day of tracking."
