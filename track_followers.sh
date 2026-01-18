@@ -142,10 +142,6 @@ fetch_followers() {
         # No followers; produce an empty output so downstream comparisons work correctly
         return 0
     fi
-    if [ "${#all_followers[@]}" -eq 0 ]; then
-        # No followers; produce empty output
-        return 0
-    fi
     printf '%s\n' "${all_followers[@]}" | sort
 }
 
