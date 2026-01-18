@@ -58,6 +58,7 @@ This creates sample follower data and generates a changelog showing the comparis
 
 - bash 4.0+
 - GitHub CLI (`gh`) - Install from https://cli.github.com/
+- `jq` - JSON parser for processing API responses
 - Standard Unix utilities (date, comm, sort, grep, awk)
 
 ## Authentication

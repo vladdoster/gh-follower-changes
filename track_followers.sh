@@ -77,6 +77,11 @@ fetch_followers() {
         error "GitHub CLI (gh) is not installed. Please install it from https://cli.github.com/"
     fi
     
+    # Check if jq is available for JSON parsing
+    if ! command -v jq &> /dev/null; then
+        error "jq is not installed. Please install it for JSON parsing."
+    fi
+    
     # Check if authenticated with gh
     if ! gh auth status &> /dev/null; then
         warn "Not authenticated with GitHub CLI. Run 'gh auth login' to authenticate."
@@ -99,15 +104,20 @@ fetch_followers() {
             fi
         fi
         
-        # Extract usernames from JSON response
-        local followers=$(echo "$response" | grep -o '"login":"[^"]*"' | cut -d'"' -f4)
+        # Extract usernames from JSON response using jq
+        local followers=$(echo "$response" | jq -r '.[].login' 2>/dev/null)
         
         # Break if no more followers
         if [ -z "$followers" ]; then
             break
         fi
         
-        all_followers+=($followers)
+        # Add followers to array
+        while IFS= read -r follower; do
+            if [ -n "$follower" ]; then
+                all_followers+=("$follower")
+            fi
+        done <<< "$followers"
         
         # Count followers in this page
         local count=$(echo "$followers" | wc -l)
@@ -118,7 +128,7 @@ fetch_followers() {
         ((page++))
     done
     
-    # Return all followers, one per line
+    # Return all followers, one per line, sorted
     printf '%s\n' "${all_followers[@]}" | sort
 }
 
