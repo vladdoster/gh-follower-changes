@@ -68,10 +68,10 @@ echo ""
 echo "Testing changelog generation..."
 
 # Find new followers (in current but not in previous)
-NEW_FOLLOWERS=$(comm -13 "$DATA_DIR/$PREV_DAY" "$DATA_DIR/$CURRENT_DAY")
+NEW_FOLLOWERS=$(comm -13 <(sort "$DATA_DIR/$PREV_DAY") <(sort "$DATA_DIR/$CURRENT_DAY"))
 
 # Find removed followers (in previous but not in current)
-REMOVED_FOLLOWERS=$(comm -23 "$DATA_DIR/$PREV_DAY" "$DATA_DIR/$CURRENT_DAY")
+REMOVED_FOLLOWERS=$(comm -23 <(sort "$DATA_DIR/$PREV_DAY") <(sort "$DATA_DIR/$CURRENT_DAY"))
 
 # Count changes
 NEW_COUNT=$(echo "$NEW_FOLLOWERS" | grep -c . || true)
