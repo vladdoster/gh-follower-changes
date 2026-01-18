@@ -119,8 +119,8 @@ fetch_followers() {
             fi
         done <<< "$followers"
         
-        # Count followers in this page
-        local count=$(echo "$followers" | wc -l)
+        # Count followers in this page (use array count for accuracy)
+        local count=$(echo "$followers" | grep -c '^' || echo 0)
         if [ "$count" -lt "$per_page" ]; then
             break
         fi
