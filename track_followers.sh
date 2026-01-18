@@ -237,7 +237,7 @@ elif [ "$CURRENT_DAY" = "001" ]; then
     # Handle year boundary: on Jan 1, try to use the latest available file from the previous year's data
     LAST_FILE=$(ls "$DATA_DIR" 2>/dev/null | sort -n | tail -n 1 || true)
     
-    if [ -n "$LAST_FILE" ] && [ "$LAST_FILE" != "$CURRENT_DAY" ]; then
+    if [ -n "$LAST_FILE" ] && [ "$LAST_FILE" != "$(basename "$CURRENT_FILE")" ]; then
         PREV_FILE="$DATA_DIR/$LAST_FILE"
         log "No previous day's file for yesterday; using last available file from previous year ($PREV_FILE). Comparing..."
         
