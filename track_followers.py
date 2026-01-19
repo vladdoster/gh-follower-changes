@@ -34,8 +34,10 @@ def validate_username(username: str) -> bool:
     """Validate GitHub username format (alphanumeric and hyphens only)."""
     return bool(re.match(r"^[a-zA-Z0-9-]+$", username))
 
+
 def _f(rem,quota): logger.debug("Quota remaining: %s of %s", rem, quota)
-    
+
+
 def fetch_followers(api: GhApi, username: str) -> list[str]:
     """Fetch all followers for a GitHub user using ghapi."""
     logger.info("Fetching followers for %s...", username)
@@ -145,7 +147,7 @@ def main() -> None:
         fatal("Invalid GitHub username format. Username must contain only alphanumeric characters and hyphens.")
     
     # Configuration
-    data_dir = Path("followers_data")
+    data_dir = Path(".followers_data")
     changelog_path = Path("CHANGELOG.md")
     
     # Create data directory if it doesn't exist
