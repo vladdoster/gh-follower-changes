@@ -39,12 +39,11 @@ def validate_username(username: str) -> bool:
     """Validate GitHub username format (alphanumeric and hyphens only)."""
     return bool(re.match(r"^[a-zA-Z0-9-]+$", username))
 
-def _f(rem,quota): print(f"Quota remaining: {rem} of {quota}")
+def _f(rem,quota): logger.info("Quota remaining: %s of %s", rem, quota)
     
 def fetch_followers(api: GhApi, username: str) -> list[str]:
     """Fetch all followers for a GitHub user using ghapi."""
     logger.info("Fetching followers for %s...", username)
-    logger.debug("%s",
     try:
         all_followers=[]
         all_followers.extend([f.login for f in chain.from_iterable(paged(api.users.list_followers_for_user, username=username))])
