@@ -29,11 +29,11 @@ jobs:
 
       - name: Track followers
         env:
-          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           # Get the repository owner
           REPO_OWNER="${{ github.repository_owner }}"
-          
+      
           # Run the tracking script using uv
           uv run track_followers.py "$REPO_OWNER"
       
