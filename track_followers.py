@@ -24,7 +24,6 @@ logger = logging.getLogger(__name__)
 
 
 def fatal(message: str, *args: object) -> None:
-    """Log an error message and exit."""
     logger.error(message, *args)
     sys.exit(1)
 
@@ -63,12 +62,12 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
        #         all_followers.append(follower.login)
 
 
-        api = GhApi(authenticate=False, limit_cb=_f)
+        api = GhApi(owner="vladdoster", authenticate=False, limit_cb=_f)
         #gh=GhApi(authenticate=False,debug=api.print_summary)
-        logger.info(list(pages(api('/users/vladdoster/followers', 'GET', route=dict(per_page=30,page=999)),api.last_page())))
+        logger.info(list(pages(api('/users/vladdoster/followers', 'GET', api.last_page()).concat()))
         p = pages(api.users.list_followers_for_user(username),api.last_page()).concat()
         logger.debug(list(f.login for f in p))
-        api.debug=None
+        #api.debug=None
     except Exception as e:
         logger.info(e)
         error_msg = str(e)
