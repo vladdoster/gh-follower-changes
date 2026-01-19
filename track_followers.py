@@ -65,8 +65,8 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
 
         api = GhApi(authenticate=False, limit_cb=_f)
         #gh=GhApi(authenticate=False,debug=api.print_summary)
-        logger.info(list(pages(api('/users/vladdoster/followers', 'GET', query=dict(page=999), route=dict(per_page=30,page=999)))))
-        p = pages(api.users.list_followers_for_user(username, api.last_page())).concat()
+        logger.info(list(pages(api('/users/vladdoster/followers', 'GET', query=dict(page=999), route=dict(per_page=30,page=999)),api.last_page())))))
+        p = pages(api.users.list_followers_for_user(username),api.last_page()).concat()
         logger.debug(list(f.login for f in p))
         api.debug=None
     except Exception as e:
