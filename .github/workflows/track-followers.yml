@@ -4,9 +4,9 @@ on:
   push: 
    branches: main
   schedule:
-    # Run every day at 00:00 UTC
+    # Runs at 12:00, between day 1 and 31 of the month
     - cron: '0 12 1-31 * *'
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -18,8 +18,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Fetch all history for proper git operations
       
       - name: Set up Git
         run: |
@@ -30,22 +28,14 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Track followers         
-        run: |
-            uv sync
-            uv run -- python -c 'import os; print(os.getenv("GITHUB_TOKEN"))'
-            uv run -- python -c 'import os; print(os.getenv("GH_TOKEN"))'
-            uv run -- python track_followers.py ${{ github.repository_owner }}
+        run: uv run track_followers.py ${{ github.repository_owner }}
       
       - name: Commit and push changes
         run: |
-          # Add changes (ignore if files don't exist)
           git add -A
-          
-          # Check if there are changes to commit
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            # Commit and push
-            git commit -m "Update follower data for $(date +%Y-%m-%d)"
+            git commit -m "chore: update follower data for $(date +%Y-%m-%d)"
             git push
           fi
