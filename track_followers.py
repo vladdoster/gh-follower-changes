@@ -56,7 +56,7 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
     all_followers = []
     
     try:
-        for follower in pages(api.users.list_followers_for_user, api.last_page(), per_page=30, username=username).concat():
+        for follower in pages(api.users.list_followers_for_user, api.last_page(), username).concat():
             all_followers.append(follower.login)
     except Exception as e:
         error_msg = str(e)
