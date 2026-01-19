@@ -3,7 +3,7 @@
 track_followers.py
 Script to track GitHub followers and maintain a changelog
 """
-import itertools
+from itertools.chain import from_iterable
 import logging
 import os
 import re
@@ -57,19 +57,10 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
     all_followers = []
     
     try:
-        #for page in paged(api.users.list_followers_for_user, username=username, per_page=30):
-        #    for follower in page:
-       #         all_followers.append(follower.login)
-
-
-        api = GhApi(owner="vladdoster", authenticate=False, limit_cb=_f)
-        #gh=GhApi(authenticate=False,debug=api.print_summary)
-        p=itertools.chain.from_iterable(paged(api.users.list_followers_for_user, username=username))
-        all_followers=[f.login for f in p]
-        #logger.info(list(pages(api('/users/vladdoster/followers', 'GET', api.last_page()).concat()))
-        #p = pages(api.users.list_followers_for_user(username),api.last_page()).concat()
+        # api = GhApi(owner="vladdoster", authenticate=False, limit_cb=_f)
+        all_followers.extend(from_iterable(paged(api.users.list_followers_for_user, username=username)))
+        #all_followers=[f.login for f in p]
         logger.debug(all_followers)
-        #api.debug=None
     except Exception as e:
         logger.info(e)
         error_msg = str(e)
