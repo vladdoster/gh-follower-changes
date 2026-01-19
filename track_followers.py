@@ -60,7 +60,7 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
         #for page in paged(api.users.list_followers_for_user, username=username, per_page=30):
         #    for follower in page:
        #         all_followers.append(follower.login)
-        p = pages(api.users.list_followers_for_user, api.last_page(), username=username).concat()
+        p = pages(api.users.list_followers_for_user, api.last_page(), username,per_page=30).concat()
         logger.info(list(f.login for f in p))
     except Exception as e:
         error_msg = str(e)
