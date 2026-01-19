@@ -11,7 +11,7 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-from ghapi.all import GhApi, paged
+from ghapi.all import GhApi, pages
 
 # Configure logging
 logging.basicConfig(
@@ -56,10 +56,8 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
     all_followers = []
     
     try:
-        # Use paged to handle pagination automatically
-        for page in paged(api.users.list_followers_for_user, username=username, per_page=100):
-            for follower in page:
-                all_followers.append(follower.login)
+        for follower in pages(api.users.list_followers_for_user, username=username, per_page=100).concat():
+            all_followers.append(follower.login)
     except Exception as e:
         error_msg = str(e)
         if "404" in error_msg:
