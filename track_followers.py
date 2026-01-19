@@ -11,7 +11,7 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-from ghapi.all import GhApi, paged
+from ghapi.all import GhApi, pages
 
 # Configure logging
 logging.basicConfig(
