@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "ghapi>=1.0.9",
+    "fastcore==1.8.16",
 ]
 
 [project.scripts]
