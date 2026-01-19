@@ -7,7 +7,7 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-from ghapi.all import *
+from ghapi.page import paged
 from ghapi.all import GhApi
 
 logging.basicConfig(
