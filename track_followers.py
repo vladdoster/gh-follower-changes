@@ -60,7 +60,7 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
         #for page in paged(api.users.list_followers_for_user, username=username, per_page=30):
         #    for follower in page:
        #         all_followers.append(follower.login)
-        p = pages(api.users.list_followers_for_authenticated_user(per_page=30)).concat()
+        p = pages(api.users.list_followers_for_user(per_page=30)).concat()
         logger.debug(list(f.login for f in p))
     except Exception as e:
         error_msg = str(e)
@@ -182,11 +182,10 @@ def main() -> None:
     
     # Initialize GitHub API client
     # ghapi will automatically use GH_TOKEN or GITHUB_TOKEN from environment
-    token=github_token()
     if not token:
         logger.warning("No GH_TOKEN or GITHUB_TOKEN found. You may hit rate limits for unauthenticated requests.")
     
-    api = GhApi(owner="vladdoster")
+    api = GhApi(owner="vladdoster", authenticate=False)
     
     
     # Fetch current followers
