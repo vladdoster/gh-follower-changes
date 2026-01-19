@@ -61,8 +61,8 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
         #    for follower in page:
        #         all_followers.append(follower.login)
 
-        gh=GhApi(authenticate=False,debug=print_summary)
-        logger.info(list(pages(gh('/users/{owner}/followers', 'GET', route=dict(owner='vladdoster'), page=gh.last_page(),per_page=100))))
+        gh=GhApi(authenticate=False,debug=api.print_summary)
+        logger.info(list(pages(gh('/users/vladdoster/followers', 'GET', page=gh.last_page(),per_page=100))))
         p = pages(gh.users.list_followers_for_user(username, gh.last_page())).concat()
         gh.debug=None
         logger.debug(list(f.login for f in p))
