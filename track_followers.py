@@ -2,7 +2,6 @@
 
 from itertools import chain
 import logging
-import os
 import re
 import sys
 from datetime import date, timedelta
