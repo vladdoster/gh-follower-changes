@@ -57,9 +57,7 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
     all_followers = []
     
     try:
-        # api = GhApi(owner="vladdoster", authenticate=False, limit_cb=_f)
-        all_followers.extend(chain.from_iterable(paged(api.users.list_followers_for_user, username=username)))
-        #all_followers=[f.login for f in p]
+        all_followers.extend([f.login for f in chain.from_iterable(paged(api.users.list_followers_for_user, username=username))])
         logger.debug(all_followers)
     except Exception as e:
         logger.info(e)
