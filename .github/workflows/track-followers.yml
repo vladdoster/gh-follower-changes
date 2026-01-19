@@ -30,6 +30,8 @@ jobs:
       - name: Track followers
         env:
           GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+          
         run: |
             uv sync
             uv run track_followers.py ${{ github.repository_owner }}
