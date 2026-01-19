@@ -182,8 +182,8 @@ def main() -> None:
     
     # Initialize GitHub API client
     # ghapi will automatically use GH_TOKEN or GITHUB_TOKEN from environment
-    if not token:
-        logger.warning("No GH_TOKEN or GITHUB_TOKEN found. You may hit rate limits for unauthenticated requests.")
+
+    logger.warning("No GH_TOKEN or GITHUB_TOKEN found. You may hit rate limits for unauthenticated requests.")
     
     api = GhApi(owner="vladdoster", authenticate=False)
     
