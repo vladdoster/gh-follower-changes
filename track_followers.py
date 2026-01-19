@@ -11,7 +11,8 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-from ghapi.all import GhApi, paged
+from ghapi.all import *
+
 
 # Configure logging
 logging.basicConfig(
@@ -56,7 +57,8 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
     all_followers = []
     
     try:
-        for follower in list(paged(api.users.list_followers_for_user, username=username, per_page=100)):
+        pages=paged(api.users.list_followers_for_user, per_page=30)
+        for follower in pages:
             all_followers.append(follower.login)
     except Exception as e:
         error_msg = str(e)
@@ -178,11 +180,11 @@ def main() -> None:
     
     # Initialize GitHub API client
     # ghapi will automatically use GH_TOKEN or GITHUB_TOKEN from environment
-    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    token=github_token()
     if not token:
         logger.warning("No GH_TOKEN or GITHUB_TOKEN found. You may hit rate limits for unauthenticated requests.")
     
-    api = GhApi(token=token)
+    api = GhApi(owner=github_username, token=token)
     
     # Fetch current followers
     logger.info("Retrieving followers...")
