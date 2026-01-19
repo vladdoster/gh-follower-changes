@@ -16,7 +16,7 @@ from ghapi.all import *
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="[%(levelname)s] %(message)s",
     handlers=[logging.StreamHandler(sys.stderr)],
 )
@@ -60,7 +60,7 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
         #for page in paged(api.users.list_followers_for_user, username=username, per_page=30):
         #    for follower in page:
        #         all_followers.append(follower.login)
-        p = pages(api.users.list_followers_for_user, api.last_page(), per_page=30).concat()
+        p = pages(api.users.list_followers_for_user, 999).concat()
         logger.debug(list(f.login for f in p))
     except Exception as e:
         error_msg = str(e)
