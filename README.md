@@ -2,6 +2,8 @@
 
 GitHub Followers Tracker - A Python script to track GitHub followers and maintain a changelog of changes.
 
+[![Track GitHub Followers](https://github.com/vladdoster/gh-follower-changes/actions/workflows/track-followers.yml/badge.svg)](https://github.com/vladdoster/gh-follower-changes/actions/workflows/track-followers.yml)
+
 ## Features
 
 - Retrieves followers for a specified GitHub user
