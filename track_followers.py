@@ -186,7 +186,7 @@ def main() -> None:
     if not token:
         logger.warning("No GH_TOKEN or GITHUB_TOKEN found. You may hit rate limits for unauthenticated requests.")
     
-    api = GhApi(owner=github_username, token=token)
+    api = GhApi(owner=github_username, token=token, debug=True, authenticate=False)
     
     # Fetch current followers
     logger.info("Retrieving followers...")
