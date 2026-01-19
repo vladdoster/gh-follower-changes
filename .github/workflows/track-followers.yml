@@ -30,7 +30,9 @@ jobs:
       - name: Track followers
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        run: uv run track_followers.py ${{ github.repository_owner }}
+        run: |
+            uv sync
+            uv run track_followers.py ${{ github.repository_owner }}
       
       - name: Commit and push changes
         run: |
