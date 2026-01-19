@@ -57,9 +57,9 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
     all_followers = []
     
     try:
-        pages=paged(api.users.list_followers_for_user, per_page=30)
-        for follower in pages:
-            all_followers.append(follower.login)
+        for page in paged(api.users.list_followers_for_user, username=username, per_page=30):
+            for follower in page:
+                all_followers.append(follower.login)
     except Exception as e:
         error_msg = str(e)
         if "404" in error_msg:
