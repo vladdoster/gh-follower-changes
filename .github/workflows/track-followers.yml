@@ -36,7 +36,7 @@ jobs:
             uv sync
             uv run -- python -c 'import os; print(os.getenv("GITHUB_TOKEN"))'
             uv run -- python -c 'import os; print(os.getenv("GH_TOKEN"))'
-            #uv run track_followers.py ${{ github.repository_owner }}
+            uv run -- python track_followers.py ${{ github.repository_owner }}
       
       - name: Commit and push changes
         run: |
