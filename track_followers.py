@@ -11,7 +11,7 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-from ghapi.all import GhApi, pages
+from ghapi.all import GhApi, paged
 
 # Configure logging
 logging.basicConfig(
@@ -56,7 +56,7 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
     all_followers = []
     
     try:
-        for follower in pages(api.users.list_followers_for_user, api.last_page(), username).concat():
+        for follower in paged(api.users.list_followers_for_user, username=username, per_page=100).concat():
             all_followers.append(follower.login)
     except Exception as e:
         error_msg = str(e)
