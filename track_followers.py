@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-track_followers.py
-Script to track GitHub followers and maintain a changelog
-"""
+
 from itertools import chain
 import logging
 import os
@@ -14,7 +11,6 @@ from pathlib import Path
 from ghapi.all import *
 from ghapi.all import GhApi
 
-# Configure logging
 logging.basicConfig(
     level=logging.DEBUG,
     format="[%(levelname)s] %(message)s",
@@ -31,7 +27,6 @@ def fatal(message: str, *args: object) -> None:
 def usage() -> None:
     """Display usage information and exit."""
     print("Usage: track_followers.py <github_username>")
-    print("Example: track_followers.py vladdoster")
     sys.exit(1)
 
 
@@ -39,7 +34,7 @@ def validate_username(username: str) -> bool:
     """Validate GitHub username format (alphanumeric and hyphens only)."""
     return bool(re.match(r"^[a-zA-Z0-9-]+$", username))
 
-def _f(rem,quota): logger.info("Quota remaining: %s of %s", rem, quota)
+def _f(rem,quota): logger.debug("Quota remaining: %s of %s", rem, quota)
     
 def fetch_followers(api: GhApi, username: str) -> list[str]:
     """Fetch all followers for a GitHub user using ghapi."""
