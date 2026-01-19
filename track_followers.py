@@ -42,25 +42,14 @@ def validate_username(username: str) -> bool:
 def _f(rem,quota): print(f"Quota remaining: {rem} of {quota}")
     
 def fetch_followers(api: GhApi, username: str) -> list[str]:
-    """
-    Fetch all followers for a GitHub user using ghapi.
-    
-    Args:
-        api: GhApi instance
-        username: GitHub username to fetch followers for
-        
-    Returns:
-        Sorted list of follower usernames
-    """
+    """Fetch all followers for a GitHub user using ghapi."""
     logger.info("Fetching followers for %s...", username)
-    
-    all_followers = []
-    
+    logger.debug("%s",
     try:
+        all_followers=[]
         all_followers.extend([f.login for f in chain.from_iterable(paged(api.users.list_followers_for_user, username=username))])
-        logger.debug(all_followers)
+        logger.debug("%s",all_followers)
     except Exception as e:
-        logger.info(e)
         error_msg = str(e)
         if "404" in error_msg:
             fatal("User '%s' not found", username)
@@ -180,11 +169,7 @@ def main() -> None:
     
     # Initialize GitHub API client
     # ghapi will automatically use GH_TOKEN or GITHUB_TOKEN from environment
-
-    logger.warning("No GH_TOKEN or GITHUB_TOKEN found. You may hit rate limits for unauthenticated requests.")
-    
-    api = GhApi(owner="vladdoster", authenticate=False)
-    
+    api = GhApi(owner="vladdoster", authenticate=False, limit_cb=_f)
     
     # Fetch current followers
     logger.info("Retrieving followers...")
