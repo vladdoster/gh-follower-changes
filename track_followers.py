@@ -12,7 +12,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from ghapi.all import *
-
+from ghapi.all import GhApi
 
 # Configure logging
 logging.basicConfig(
@@ -186,7 +186,8 @@ def main() -> None:
     if not token:
         logger.warning("No GH_TOKEN or GITHUB_TOKEN found. You may hit rate limits for unauthenticated requests.")
     
-    api = GhApi(owner="vladdoster", repo="gh-follower-changes", token=token)
+    api = GhApi(owner="vladdoster")
+    
     
     # Fetch current followers
     logger.info("Retrieving followers...")
