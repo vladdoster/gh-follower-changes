@@ -70,7 +70,7 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
         for code, msg in error_handlers.items():
             if code in error_msg:
                 fatal(msg)
-        fatal("GitHub API error:  %s", error_msg)
+        fatal("GitHub API error: %s", error_msg)
 
 
 def load_followers(filepath: Path) -> set[str]:
