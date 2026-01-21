@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 
+import logging
+import re
+import sys
 from dataclasses import dataclass
 from datetime import date, timedelta
 from itertools import chain
-import logging
 from pathlib import Path
-import re
-import sys
 from typing import NoReturn
 
+import mdformat
 from ghapi.all import GhApi, github_token
 from ghapi.page import paged
-import mdformat
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -19,10 +19,10 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stderr)],
 )
 logger = logging.getLogger(__name__)
-logging.getLogger('markdown_it').setLevel(logging.INFO)
+logging.getLogger("markdown_it").setLevel(logging.INFO)
 
 USERNAME_PATTERN = re.compile(r"^[a-zA-Z0-9-]+$")
-H3_PATTERN = re.compile(r'(^\n)(^### )', re.MULTILINE)
+H3_PATTERN = re.compile(r"(^\n)(^### )", re.MULTILINE)
 
 
 @dataclass
@@ -126,7 +126,9 @@ def update_changelog(
 
     match = H3_PATTERN.search(content)
     if match:
-        logger.debug('%02d-%02d: %s' % (match.start(), match.end(), f'{match.group(0)!r}'))
+        logger.debug(
+            "%02d-%02d: %s" % (match.start(), match.end(), f"{match.group(0)!r}")
+        )
     insert_pos = match.start() if match else len(content)
     new_content = content[:insert_pos] + new_entry + content[insert_pos:]
 
@@ -134,7 +136,6 @@ def update_changelog(
     mdformat.file(changelog_path)
 
     logger.info("Changelog updated: %s", changelog_path)
-
 
 
 def compare_followers(current: set[str], previous: set[str]) -> FollowerChanges:
@@ -166,10 +167,10 @@ def main() -> None:
     prev_file = data_dir / (today - timedelta(days=1)).strftime("%Y-%j")
 
     # Fetch and save current followers
-    authenticate=False
+    authenticate = False
     try:
         github_token()
-        authenticate=True
+        authenticate = True
         logger.info(f"GH Token found, authenticating to GH API {authenticate}")
     except AttributeError as e:
         logger.warning("GH Token not found, GH API requests might fail due to quota")
@@ -177,7 +178,9 @@ def main() -> None:
 
     api = GhApi(
         authenticate=authenticate,
-        limit_cb=lambda rem, quota: logger.debug( "Quota remaining: %s of %s", rem, quota),
+        limit_cb=lambda rem, quota: logger.debug(
+            "Quota remaining: %s of %s", rem, quota
+        ),
         owner="vladdoster",
     )
     followers = fetch_followers(api, github_username)
