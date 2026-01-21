@@ -1,25 +1,26 @@
 #!/usr/bin/env python3
 
-import logging
-import re
-import sys
 from dataclasses import dataclass
 from datetime import date, timedelta
 from itertools import chain
+import logging
 from pathlib import Path
+from pprint import pformat
+import re
+import sys
 from typing import NoReturn
 
+from ghapi.all import GhApi, GhDeviceAuth, github_token, paged
 import mdformat
-from ghapi.all import GhApi, github_token
-from ghapi.page import paged
 
 logging.basicConfig(
     level=logging.DEBUG,
     format="[%(levelname)s] %(message)s",
     handlers=[logging.StreamHandler(sys.stderr)],
 )
-logger = logging.getLogger(__name__)
+
 logging.getLogger("markdown_it").setLevel(logging.INFO)
+logger = logging.getLogger("gh-fc")
 
 USERNAME_PATTERN = re.compile(r"^[a-zA-Z0-9-]+$")
 H3_PATTERN = re.compile(r"(^\n)(^### )", re.MULTILINE)
@@ -55,21 +56,23 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
     logger.info("Fetching followers for %r...", username)
 
     error_handlers = {
+        "401": "GitHub API requires authentication. Please set GH_TOKEN or GITHUB_TOKEN.",
+        "403": "GitHub API rate limit exceeded.",
         "404": f"User '{username}' not found",
-        "401": "GitHub API requires authentication.  Please set GH_TOKEN or GITHUB_TOKEN.",
-        "403": "GitHub API requires authentication. Please set GH_TOKEN or GITHUB_TOKEN.",
+        "429": "GH API throttled due to number of requests. Please wait a few minutes before you try again.",
     }
 
     try:
-        pages = paged(api.users.list_followers_for_user, username=username)
-        followers = sorted(f.login for f in chain.from_iterable(pages))
-        logger.debug("%s", followers)
+        pages = paged(api.users.list_followers_for_user, username=username, per_page=100)
+        followers = sorted(set(f.login for f in chain.from_iterable(pages)))
+        logger.debug("%s", pformat(followers, compact=True, width=120))
         return followers
     except Exception as e:
         error_msg = str(e)
         for code, msg in error_handlers.items():
             if code in error_msg:
-                fatal(msg)
+                print(api.limit_rem)
+                fatal(error_msg)
         fatal("GitHub API error: %s", error_msg)
 
 
@@ -105,9 +108,7 @@ def build_changelog_entry(changes: FollowerChanges, current_date: date) -> str:
     return "\n".join(sections)
 
 
-def update_changelog(
-    changes: FollowerChanges, changelog_path: Path, current_date: date
-) -> None:
+def update_changelog(changes: FollowerChanges, changelog_path: Path, current_date: date) -> None:
     """Update the changelog with new and removed followers."""
     date_str = current_date.strftime("%Y-%m-%d")
     new_entry = build_changelog_entry(changes, current_date)
@@ -131,7 +132,10 @@ def update_changelog(
     new_content = content[:insert_pos] + new_entry + content[insert_pos:]
 
     changelog_path.write_text(new_content)
-    mdformat.file(changelog_path)
+    try:
+        mdformat.file(changelog_path)
+    except Exception as exc:
+        logger.error("Failed to format changelog %s: %s", changelog_path, exc)
 
     logger.info("Changelog updated: %s", changelog_path)
 
@@ -150,9 +154,7 @@ def main() -> None:
     github_username = sys.argv[1]
 
     if not validate_username(github_username):
-        fatal(
-            "Invalid GitHub username format. Must contain only alphanumeric characters and hyphens."
-        )
+        fatal("Invalid GitHub username format. Must contain only alphanumeric characters and hyphens.")
 
     # Configuration
     data_dir = Path(".followers_data")
@@ -165,22 +167,12 @@ def main() -> None:
     prev_file = data_dir / (today - timedelta(days=1)).strftime("%Y-%j")
 
     # Fetch and save current followers
-    authenticate = False
-    try:
-        github_token()
-        authenticate = True
-        logger.info("GH Token found, authenticating to GH API")
-    except (OSError, AttributeError) as e:
-        logger.warning("GH Token not found, GH API requests might fail due to quota")
-        logger.debug(e)
-
     api = GhApi(
-        authenticate=authenticate,
-        limit_cb=lambda rem, quota: logger.debug(
-            "Quota remaining: %s of %s", rem, quota
-        ),
+        limit_cb=lambda rem, quota: logger.debug("Quota remaining: %s of %s", rem, quota),
         owner="vladdoster",
+        authenticate=True,
     )
+
     followers = fetch_followers(api, github_username)
     logger.info("Found %d followers", len(followers))
     save_followers(followers, current_file)
