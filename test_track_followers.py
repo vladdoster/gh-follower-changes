@@ -5,12 +5,17 @@ Test script for track_followers.py
 This creates mock data to test the changelog functionality
 """
 
+import shutil
 from datetime import date, timedelta
 from pathlib import Path
-import shutil
 
 # Import functions from track_followers
-from track_followers import get_date_id, load_followers_from_file, save_followers_to_file, update_changelog
+from track_followers import (
+    get_date_id,
+    load_followers_from_file,
+    save_followers_to_file,
+    update_changelog,
+)
 
 
 def main() -> None:

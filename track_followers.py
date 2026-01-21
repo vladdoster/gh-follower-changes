@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 
+import logging
+import re
+import sys
 from dataclasses import dataclass
 from datetime import date, timedelta
 from itertools import chain
-import logging
 from pathlib import Path
 from pprint import pformat
-import re
-import sys
 from typing import NoReturn
 
-from ghapi.all import GhApi, GhDeviceAuth, github_token, paged
 import mdformat
+from ghapi.all import GhApi, GhDeviceAuth, github_token, paged
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -63,7 +63,9 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
     }
 
     try:
-        pages = paged(api.users.list_followers_for_user, username=username, per_page=100)
+        pages = paged(
+            api.users.list_followers_for_user, username=username, per_page=100
+        )
         followers = sorted(set(f.login for f in chain.from_iterable(pages)))
         logger.debug("%s", pformat(followers, compact=True, width=120))
         return followers
@@ -108,7 +110,9 @@ def build_changelog_entry(changes: FollowerChanges, current_date: date) -> str:
     return "\n".join(sections)
 
 
-def update_changelog(changes: FollowerChanges, changelog_path: Path, current_date: date) -> None:
+def update_changelog(
+    changes: FollowerChanges, changelog_path: Path, current_date: date
+) -> None:
     """Update the changelog with new and removed followers."""
     date_str = current_date.strftime("%Y-%m-%d")
     new_entry = build_changelog_entry(changes, current_date)
@@ -154,7 +158,9 @@ def main() -> None:
     github_username = sys.argv[1]
 
     if not validate_username(github_username):
-        fatal("Invalid GitHub username format. Must contain only alphanumeric characters and hyphens.")
+        fatal(
+            "Invalid GitHub username format. Must contain only alphanumeric characters and hyphens."
+        )
 
     # Configuration
     data_dir = Path(".followers_data")
@@ -168,7 +174,9 @@ def main() -> None:
 
     # Fetch and save current followers
     api = GhApi(
-        limit_cb=lambda rem, quota: logger.debug("Quota remaining: %s of %s", rem, quota),
+        limit_cb=lambda rem, quota: logger.debug(
+            "Quota remaining: %s of %s", rem, quota
+        ),
         owner="vladdoster",
         authenticate=True,
     )
