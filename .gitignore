@@ -25,3 +25,12 @@ wheels/
 venv/
 ENV/
 env/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+.tox/
