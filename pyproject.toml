@@ -7,6 +7,7 @@ requires-python = ">=3.14"
 dependencies = [
     "ghapi>=1.0.9",
     "fastcore==1.8.16",
+    "mdformat>=1.0.0",
 ]
 
 [project.scripts]

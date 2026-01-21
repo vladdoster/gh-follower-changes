@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 
-import logging
-import re
-import sys
 from dataclasses import dataclass
 from datetime import date, timedelta
 from itertools import chain
+import logging
 from pathlib import Path
+import re
+import sys
 from typing import NoReturn
 
-from ghapi.all import GhApi
+from ghapi.all import GhApi, github_token
 from ghapi.page import paged
+import mdformat
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -18,9 +19,10 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stderr)],
 )
 logger = logging.getLogger(__name__)
+logging.getLogger('markdown_it').setLevel(logging.INFO)
 
 USERNAME_PATTERN = re.compile(r"^[a-zA-Z0-9-]+$")
-H3_PATTERN = re.compile(r"^### ", re.MULTILINE)
+H3_PATTERN = re.compile(r'(^\n)(^### )', re.MULTILINE)
 
 
 @dataclass
@@ -50,7 +52,7 @@ def validate_username(username: str) -> bool:
 
 def fetch_followers(api: GhApi, username: str) -> list[str]:
     """Fetch all followers for a GitHub user using ghapi."""
-    logger.info("Fetching followers for %s.. .", username)
+    logger.info(f"Fetching followers for {'%s'!r}...", username)
 
     error_handlers = {
         "404": f"User '{username}' not found",
@@ -86,7 +88,7 @@ def save_followers(followers: list[str], filepath: Path) -> None:
 def build_changelog_entry(changes: FollowerChanges, current_date: date) -> str:
     """Build a changelog entry for the given changes."""
     date_str = current_date.strftime("%Y-%m-%d")
-    sections = [f"### {date_str}", ""]
+    sections = [f"### {date_str}"]
 
     for title, followers in [
         ("New Followers", changes.new),
@@ -96,9 +98,7 @@ def build_changelog_entry(changes: FollowerChanges, current_date: date) -> str:
             sections.extend(
                 [
                     f"#### {title}",
-                    "",
                     *[f"- @{f}" for f in sorted(followers)],
-                    "",
                 ]
             )
 
@@ -125,11 +125,16 @@ def update_changelog(
         return
 
     match = H3_PATTERN.search(content)
+    if match:
+        logger.debug('%02d-%02d: %s' % (match.start(), match.end(), f'{match.group(0)!r}'))
     insert_pos = match.start() if match else len(content)
     new_content = content[:insert_pos] + new_entry + content[insert_pos:]
 
     changelog_path.write_text(new_content)
+    mdformat.file(changelog_path)
+
     logger.info("Changelog updated: %s", changelog_path)
+
 
 
 def compare_followers(current: set[str], previous: set[str]) -> FollowerChanges:
@@ -151,7 +156,7 @@ def main() -> None:
         )
 
     # Configuration
-    data_dir = Path(". followers_data")
+    data_dir = Path(".followers_data")
     changelog_path = Path("CHANGELOG.md")
     data_dir.mkdir(exist_ok=True)
 
@@ -161,12 +166,19 @@ def main() -> None:
     prev_file = data_dir / (today - timedelta(days=1)).strftime("%Y-%j")
 
     # Fetch and save current followers
+    authenticate=False
+    try:
+        github_token()
+        authenticate=True
+        logger.info(f"GH Token found, authenticating to GH API {authenticate}")
+    except AttributeError as e:
+        logger.warning("GH Token not found, GH API requests might fail due to quota")
+        logger.debug(e)
+
     api = GhApi(
+        authenticate=authenticate,
+        limit_cb=lambda rem, quota: logger.debug( "Quota remaining: %s of %s", rem, quota),
         owner="vladdoster",
-        authenticate=False,
-        limit_cb=lambda rem, quota: logger.debug(
-            "Quota remaining: %s of %s", rem, quota
-        ),
     )
     followers = fetch_followers(api, github_username)
     logger.info("Found %d followers", len(followers))
@@ -178,12 +190,12 @@ def main() -> None:
         changes = compare_followers(set(followers), load_followers(prev_file))
 
         if changes.has_changes:
-            logger.info("Changes detected:  %s", changes)
+            logger.info("Changes detected: %s", changes)
             update_changelog(changes, changelog_path, today)
         else:
             logger.info("No changes in followers")
     else:
-        logger.info("No previous data found.  First run or first day of tracking.")
+        logger.info("No previous data found. First run or first day of tracking.")
 
     logger.info("Followers saved to: %s", current_file)
     logger.info("Done!")
