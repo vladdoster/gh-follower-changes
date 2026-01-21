@@ -151,7 +151,7 @@ def main() -> None:
 
     if not validate_username(github_username):
         fatal(
-            "Invalid GitHub username format.  Must contain only alphanumeric characters and hyphens."
+            "Invalid GitHub username format. Must contain only alphanumeric characters and hyphens."
         )
 
     # Configuration
