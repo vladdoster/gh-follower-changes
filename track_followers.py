@@ -52,7 +52,7 @@ def validate_username(username: str) -> bool:
 
 def fetch_followers(api: GhApi, username: str) -> list[str]:
     """Fetch all followers for a GitHub user using ghapi."""
-    logger.info(f"Fetching followers for {'%s'!r}...", username)
+    logger.info("Fetching followers for %r...", username)
 
     error_handlers = {
         "404": f"User '{username}' not found",
