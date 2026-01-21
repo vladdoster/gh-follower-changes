@@ -6,6 +6,7 @@ import sys
 from datetime import date, timedelta
 from itertools import chain
 from pathlib import Path
+from typing import NamedTuple
 
 from ghapi.all import GhApi
 from ghapi.page import paged
@@ -34,7 +35,7 @@ def validate_username(username: str) -> bool:
     return bool(re.match(r"^[a-zA-Z0-9-]+$", username))
 
 
-def _f(rem, quota):
+def _f(rem: int, quota: int) -> None:
     logger.debug("Quota remaining: %s of %s", rem, quota)
 
 
@@ -42,15 +43,12 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
     """Fetch all followers for a GitHub user using ghapi."""
     logger.info("Fetching followers for %s...", username)
     try:
-        all_followers = []
-        all_followers.extend(
-            [
-                f.login
-                for f in chain.from_iterable(
-                    paged(api.users.list_followers_for_user, username=username)
-                )
-            ]
-        )
+        all_followers = [
+            f.login
+            for f in chain.from_iterable(
+                paged(api.users.list_followers_for_user, username=username)
+            )
+        ]
         logger.debug("%s", all_followers)
     except Exception as e:
         error_msg = str(e)
@@ -87,6 +85,30 @@ def save_followers_to_file(followers: list[str], filepath: Path) -> None:
             f.write(f"{follower}\n")
 
 
+class FollowerChanges(NamedTuple):
+    """Represents changes in followers between two time periods."""
+
+    new: set[str]
+    removed: set[str]
+
+
+def compare_followers(
+    current_followers: set[str], prev_followers: set[str]
+) -> FollowerChanges:
+    """Compare two sets of followers and return changes."""
+    return FollowerChanges(
+        new=current_followers - prev_followers,
+        removed=prev_followers - current_followers,
+    )
+
+
+def _build_follower_section(title: str, followers: set[str]) -> list[str]:
+    """Build a changelog section for a set of followers."""
+    if not followers:
+        return []
+    return [f"#### {title}", ""] + [f"- @{f}" for f in sorted(followers)] + [""]
+
+
 def update_changelog(
     new_followers: set[str],
     removed_followers: set[str],
@@ -98,20 +120,8 @@ def update_changelog(
 
     # Build the new entry
     entry_lines = [f"### {date_str}", ""]
-
-    if new_followers:
-        entry_lines.append("#### New Followers")
-        entry_lines.append("")
-        for follower in sorted(new_followers):
-            entry_lines.append(f"- @{follower}")
-        entry_lines.append("")
-
-    if removed_followers:
-        entry_lines.append("#### Removed Followers")
-        entry_lines.append("")
-        for follower in sorted(removed_followers):
-            entry_lines.append(f"- @{follower}")
-        entry_lines.append("")
+    entry_lines.extend(_build_follower_section("New Followers", new_followers))
+    entry_lines.extend(_build_follower_section("Removed Followers", removed_followers))
 
     new_entry = "\n".join(entry_lines)
 
@@ -195,20 +205,15 @@ def main() -> None:
         prev_followers = load_followers_from_file(prev_file)
         current_followers = set(followers)
 
-        # Find new followers (in current but not in previous)
-        new_followers = current_followers - prev_followers
+        changes = compare_followers(current_followers, prev_followers)
 
-        # Find removed followers (in previous but not in current)
-        removed_followers = prev_followers - current_followers
-
-        new_count = len(new_followers)
-        removed_count = len(removed_followers)
-
-        if new_count > 0 or removed_count > 0:
+        if changes.new or changes.removed:
             logger.info(
-                "Changes detected: +%d new, -%d removed", new_count, removed_count
+                "Changes detected: +%d new, -%d removed",
+                len(changes.new),
+                len(changes.removed),
             )
-            update_changelog(new_followers, removed_followers, changelog_path, today)
+            update_changelog(changes.new, changes.removed, changelog_path, today)
         else:
             logger.info("No changes in followers")
     else:

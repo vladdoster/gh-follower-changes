@@ -11,6 +11,7 @@ from pathlib import Path
 
 # Import functions from track_followers
 from track_followers import (
+    compare_followers,
     get_date_id,
     load_followers_from_file,
     save_followers_to_file,
@@ -85,24 +86,20 @@ def main() -> None:
     prev_set = load_followers_from_file(prev_file)
     current_set = set(current_followers)
 
-    # Find new followers (in current but not in previous)
-    new_followers = current_set - prev_set
+    changes = compare_followers(current_set, prev_set)
 
-    # Find removed followers (in previous but not in current)
-    removed_followers = prev_set - current_set
-
-    print(f"New followers ({len(new_followers)}):")
-    for f in sorted(new_followers):
+    print(f"New followers ({len(changes.new)}):")
+    for f in sorted(changes.new):
         print(f"  {f}")
     print()
 
-    print(f"Removed followers ({len(removed_followers)}):")
-    for f in sorted(removed_followers):
+    print(f"Removed followers ({len(changes.removed)}):")
+    for f in sorted(changes.removed):
         print(f"  {f}")
     print()
 
-    if new_followers or removed_followers:
-        update_changelog(new_followers, removed_followers, changelog_path, today)
+    if changes.new or changes.removed:
+        update_changelog(changes.new, changes.removed, changelog_path, today)
         print("Changelog created successfully!")
 
     print()
