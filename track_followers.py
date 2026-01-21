@@ -26,7 +26,8 @@ H3_PATTERN = re.compile(r"^### ", re.MULTILINE)
 @dataclass
 class FollowerChanges:
     """Represents changes in followers between two time periods."""
-    new:  set[str]
+
+    new: set[str]
     removed: set[str]
 
     @property
@@ -58,14 +59,14 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
     }
 
     try:
-        pages = paged(api.users. list_followers_for_user, username=username)
+        pages = paged(api.users.list_followers_for_user, username=username)
         followers = sorted(f.login for f in chain.from_iterable(pages))
         logger.debug("%s", followers)
         return followers
     except Exception as e:
         error_msg = str(e)
         for code, msg in error_handlers.items():
-            if code in error_msg: 
+            if code in error_msg:
                 fatal(msg)
         fatal("GitHub API error:  %s", error_msg)
 
@@ -87,19 +88,26 @@ def build_changelog_entry(changes: FollowerChanges, current_date: date) -> str:
     date_str = current_date.strftime("%Y-%m-%d")
     sections = [f"### {date_str}", ""]
 
-    for title, followers in [("New Followers", changes.new), ("Removed Followers", changes.removed)]:
+    for title, followers in [
+        ("New Followers", changes.new),
+        ("Removed Followers", changes.removed),
+    ]:
         if followers:
-            sections.extend([
-                f"#### {title}",
-                "",
-                *[f"- @{f}" for f in sorted(followers)],
-                "",
-            ])
+            sections.extend(
+                [
+                    f"#### {title}",
+                    "",
+                    *[f"- @{f}" for f in sorted(followers)],
+                    "",
+                ]
+            )
 
     return "\n".join(sections)
 
 
-def update_changelog(changes: FollowerChanges, changelog_path: Path, current_date: date) -> None:
+def update_changelog(
+    changes: FollowerChanges, changelog_path: Path, current_date: date
+) -> None:
     """Update the changelog with new and removed followers."""
     date_str = current_date.strftime("%Y-%m-%d")
     new_entry = build_changelog_entry(changes, current_date)
@@ -124,7 +132,7 @@ def update_changelog(changes: FollowerChanges, changelog_path: Path, current_dat
     logger.info("Changelog updated: %s", changelog_path)
 
 
-def compare_followers(current:  set[str], previous: set[str]) -> FollowerChanges:
+def compare_followers(current: set[str], previous: set[str]) -> FollowerChanges:
     """Compare current and previous followers to find changes."""
     return FollowerChanges(new=current - previous, removed=previous - current)
 
@@ -138,7 +146,9 @@ def main() -> None:
     github_username = sys.argv[1]
 
     if not validate_username(github_username):
-        fatal("Invalid GitHub username format.  Must contain only alphanumeric characters and hyphens.")
+        fatal(
+            "Invalid GitHub username format.  Must contain only alphanumeric characters and hyphens."
+        )
 
     # Configuration
     data_dir = Path(". followers_data")
@@ -154,7 +164,9 @@ def main() -> None:
     api = GhApi(
         owner="vladdoster",
         authenticate=False,
-        limit_cb=lambda rem, quota: logger.debug("Quota remaining: %s of %s", rem, quota),
+        limit_cb=lambda rem, quota: logger.debug(
+            "Quota remaining: %s of %s", rem, quota
+        ),
     )
     followers = fetch_followers(api, github_username)
     logger.info("Found %d followers", len(followers))
@@ -162,7 +174,7 @@ def main() -> None:
 
     # Compare with previous day if available
     if prev_file.exists():
-        logger.info("Comparing with previous day (%s)...", prev_file. name)
+        logger.info("Comparing with previous day (%s)...", prev_file.name)
         changes = compare_followers(set(followers), load_followers(prev_file))
 
         if changes.has_changes:
