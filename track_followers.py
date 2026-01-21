@@ -170,7 +170,7 @@ def main() -> None:
         github_token()
         authenticate = True
         logger.info(f"GH Token found, authenticating to GH API {authenticate}")
-    except AttributeError as e:
+    except (OSError, AttributeError) as e:
         logger.warning("GH Token not found, GH API requests might fail due to quota")
         logger.debug(e)
 
