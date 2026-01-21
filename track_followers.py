@@ -127,7 +127,7 @@ def update_changelog(
     match = H3_PATTERN.search(content)
     if match:
         logger.debug(
-            "%02d-%02d: %s" % (match.start(), match.end(), f"{match.group(0)!r}")
+            "%02d-%02d: %s", match.start(), match.end(), f"{match.group(0)!r}"
         )
     insert_pos = match.start() if match else len(content)
     new_content = content[:insert_pos] + new_entry + content[insert_pos:]
