@@ -9,10 +9,10 @@ import pytest
 
 from track_followers import main
 
-@pytest.mark.usefixtures("clean_dir")
+@pytest.mark.usefixtures("clean_dir","data_dir")
 class TestMainFunction:
     """Integration tests for the main function."""
-    @pytest.fixture(autouse=True, scope="function")        
+    @pytest.fixture(autouse=True)        
     def temp_dir(self):
         """Provide a temporary directory for test files."""
         return Path.cwd()
@@ -35,7 +35,7 @@ class TestMainFunction:
 
     @patch("track_followers.fetch_followers")
     @patch("track_followers.GhApi")
-    def test_main_first_run(self, mock_ghapi, mock_fetch, monkeypatch):
+    def test_main_first_run(self, mock_ghapi, mock_fetch, monkeypatch, temp_dir):
         """Test main function on first run (no previous data)."""
         # Change to temp directory
         # Setup mocks
@@ -67,7 +67,7 @@ class TestMainFunction:
 
     @patch("track_followers.fetch_followers")
     @patch("track_followers.GhApi")
-    def test_main_with_changes(self, mock_ghapi, mock_fetch, monkeypatch):
+    def test_main_with_changes(self, mock_ghapi, mock_fetch, monkeypatch, temp_dir):
         """Test main function detecting changes from previous day."""
         # Setup previous day data
         data_dir = temp_dir / ".followers_data"
@@ -104,8 +104,7 @@ class TestMainFunction:
     @patch("track_followers.fetch_followers")
     @patch("track_followers.GhApi")
     def test_main_no_changes(
-        self, mock_ghapi, mock_fetch, monkeypatch, caplog
-    ):
+        self, mock_ghapi, mock_fetch, monkeypatch, caplog, temp_dir):
         """Test main function with no changes from previous day."""
         # Setup previous day data
         data_dir = temp_dir / ".followers_data"
@@ -152,8 +151,7 @@ class TestMainFunction:
     @patch("track_followers.fetch_followers")
     @patch("track_followers.GhApi")
     def test_main_saves_to_correct_file(
-        self, mock_ghapi, mock_fetch, monkeypatch
-    ):
+        self, mock_ghapi, mock_fetch, monkeypatch, temp_dir):
         """Test that main saves data to date-based filename."""
         # Setup mocks
         mock_api_instance = Mock()
@@ -175,8 +173,7 @@ class TestMainFunction:
     @patch("track_followers.fetch_followers")
     @patch("track_followers.GhApi")
     def test_main_multiple_runs_accumulate_data(
-        self, mock_ghapi, mock_fetch, monkeypatch
-    ):
+        self, mock_ghapi, mock_fetch, monkeypatch, temp_dir):
         """Test that multiple runs on different days accumulate data."""
         # Change to temp directory
         data_dir = temp_dir / ".followers_data"
