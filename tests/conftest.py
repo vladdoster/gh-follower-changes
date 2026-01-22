@@ -1,6 +1,5 @@
 """Pytest configuration and fixtures."""
 
-import os
 import tempfile
 from pathlib import Path
 
@@ -14,7 +13,7 @@ def clean_dir():
 @pytest.fixture(scope="function")
 def temp_dir():
     """Provide a temporary directory for test files."""
-    return os.getcwd()
+    return Path.cwd()
 
 @pytest.fixture
 def data_dir(temp_dir):
