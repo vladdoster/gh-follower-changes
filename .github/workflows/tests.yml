@@ -36,7 +36,6 @@ jobs:
                       --cov-report=markdown-append:"$GITHUB_STEP_SUMMARY" \
                       --cov-report=xml:coverage.xml \
                       --cov-report=term-missing \
-                      --cov=track_followers.py \
                       tests/
 
             - name: Code Coverage Report
