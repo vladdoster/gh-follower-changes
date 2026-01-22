@@ -13,7 +13,7 @@ from track_followers import main
 class TestMainFunction:
     """Integration tests for the main function."""
     @pytest.fixture(autouse=True, scope="function")        
-    def temp_dir():
+    def temp_dir(self):
         """Provide a temporary directory for test files."""
         return Path.cwd()
     def test_main_no_arguments(self, capsys):
