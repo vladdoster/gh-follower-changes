@@ -9,13 +9,9 @@ import pytest
 
 from track_followers import main
 
-@pytest.mark.usefixtures("clean_dir","data_dir")
+@pytest.mark.usefixtures("clean_dir","temp_dir")
 class TestMainFunction:
     """Integration tests for the main function."""
-    @pytest.fixture(autouse=True)        
-    def temp_dir(self):
-        """Provide a temporary directory for test files."""
-        return Path.cwd()
     def test_main_no_arguments(self, capsys):
         """Test main function with no arguments."""
         with patch.object(sys, "argv", ["track_followers.py"]):
