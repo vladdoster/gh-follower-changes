@@ -9,7 +9,7 @@ import pytest
 
 from track_followers import main
 
-@pytest.mark.usefixtures("clean_dir","temp_dir")
+@pytest.mark.usefixtures("clean_dir","temp_dir","data_dir")
 class TestMainFunction:
     """Integration tests for the main function."""
     def test_main_no_arguments(self, capsys):
