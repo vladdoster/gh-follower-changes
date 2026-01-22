@@ -5,12 +5,15 @@ from pathlib import Path
 
 import pytest
 
-
+@pytest.fixture(scope="function")
+def clean_dir():
+    newpath = tempfile.mkdtemp()
+    os.chdir(newpath)
+    
 @pytest.fixture
-def temp_dir(tmp_path):
+def temp_dir():
     """Provide a temporary directory for test files."""
-    return tmp_path
-
+    return os.getcwd()
 
 @pytest.fixture
 def data_dir(temp_dir):
