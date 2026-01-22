@@ -66,7 +66,7 @@ def fetch_followers(api: GhApi, username: str) -> list[str]:
         pages = paged(
             api.users.list_followers_for_user, username=username, per_page=100
         )
-        followers = sorted(set(f.login for f in chain.from_iterable(pages)))
+        followers = sorted({f.login for f in chain.from_iterable(pages)})
         logger.debug("%s", pformat(followers, compact=True, width=120))
         return followers
     except Exception as e:
