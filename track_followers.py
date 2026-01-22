@@ -174,11 +174,10 @@ def main() -> None:
 
     # Fetch and save current followers
     api = GhApi(
+        authenticate=True,
         limit_cb=lambda rem, quota: logger.debug(
             "Quota remaining: %s of %s", rem, quota
         ),
-        owner="vladdoster",
-        authenticate=True,
     )
 
     followers = fetch_followers(api, github_username)
