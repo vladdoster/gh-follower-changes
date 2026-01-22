@@ -78,7 +78,9 @@ class TestValidateUsername:
             # Note: Our regex only validates basic format, not all GitHub rules
             # So we only test for obvious invalid chars
             if any(c in username for c in ["_", ".", " ", "@"]) or not username:
-                assert not validate_username(username), f"'{username}' should be invalid"
+                assert not validate_username(username), (
+                    f"'{username}' should be invalid"
+                )
 
 
 class TestFatal:
@@ -303,10 +305,7 @@ class TestUpdateChangelog:
         """Test that updating with same date is skipped."""
         changelog_path = temp_dir / "CHANGELOG.md"
         initial_content = (
-            "# Follower Changelog\n\n"
-            "### 2024-01-15\n"
-            "#### New Followers\n"
-            "- @alice\n"
+            "# Follower Changelog\n\n### 2024-01-15\n#### New Followers\n- @alice\n"
         )
         changelog_path.write_text(initial_content)
 
@@ -355,11 +354,12 @@ class TestUpdateChangelog:
             "- @charlie\n"
         )
         changelog_path.write_text(initial_content)
-        
+
         changes = FollowerChanges(new={"alice"}, removed=set())
         test_date = date(2024, 1, 15)
 
         import logging
+
         # Capture logs from the gh-fc logger
         with caplog.at_level(logging.ERROR, logger="gh-fc"):
             with patch("track_followers.mdformat.file") as mock_mdformat:
@@ -384,7 +384,10 @@ class TestFetchFollowers:
 
         with patch("track_followers.paged") as mock_paged:
             # Simulate paged results
-            mock_paged.return_value = [[mock_follower1, mock_follower2], [mock_follower3]]
+            mock_paged.return_value = [
+                [mock_follower1, mock_follower2],
+                [mock_follower3],
+            ]
             result = fetch_followers(mock_api, "testuser")
 
         assert result == ["alice", "bob", "charlie"]

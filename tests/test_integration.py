@@ -82,7 +82,11 @@ class TestMainFunction:
         # Setup mocks - current followers have changes
         mock_api_instance = Mock()
         mock_ghapi.return_value = mock_api_instance
-        mock_fetch.return_value = ["alice", "bob", "david"]  # charlie removed, david added
+        mock_fetch.return_value = [
+            "alice",
+            "bob",
+            "david",
+        ]  # charlie removed, david added
 
         # Run main
         with patch.object(sys, "argv", ["track_followers.py", "testuser"]):
@@ -101,7 +105,9 @@ class TestMainFunction:
 
     @patch("track_followers.fetch_followers")
     @patch("track_followers.GhApi")
-    def test_main_no_changes(self, mock_ghapi, mock_fetch, temp_dir, monkeypatch, caplog):
+    def test_main_no_changes(
+        self, mock_ghapi, mock_fetch, temp_dir, monkeypatch, caplog
+    ):
         """Test main function with no changes from previous day."""
         # Change to temp directory
         monkeypatch.chdir(temp_dir)
@@ -121,6 +127,7 @@ class TestMainFunction:
 
         # Run main
         import logging
+
         # Capture logs from the gh-fc logger
         with caplog.at_level(logging.INFO, logger="gh-fc"):
             with patch.object(sys, "argv", ["track_followers.py", "testuser"]):
@@ -152,7 +159,9 @@ class TestMainFunction:
 
     @patch("track_followers.fetch_followers")
     @patch("track_followers.GhApi")
-    def test_main_saves_to_correct_file(self, mock_ghapi, mock_fetch, temp_dir, monkeypatch):
+    def test_main_saves_to_correct_file(
+        self, mock_ghapi, mock_fetch, temp_dir, monkeypatch
+    ):
         """Test that main saves data to date-based filename."""
         # Change to temp directory
         monkeypatch.chdir(temp_dir)
