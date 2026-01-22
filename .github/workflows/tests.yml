@@ -52,7 +52,7 @@ jobs:
                   output: both
                   thresholds: "60 80"
 
-            - name: Update Github summary
+            - name: Update GitHub summary
               run: |
                   cat code-coverage-results.md >> "$GITHUB_STEP_SUMMARY"
 
