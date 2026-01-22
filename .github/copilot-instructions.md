@@ -12,7 +12,7 @@ This is a Python based repository. It is primarily responsible for ingesting a G
 
 ## Repository Structure
 - `pyproject.toml/`: Program details and uses semantic versioning: `pyproject.toml`
-- `testing/`: Test helpers and fixtures
+- `tests/`: Test helpers and fixtures
 - `track-followers.py`: Program entry points containing logic related to interactions with GitHub API and updating `CHANGELOG.md`
 
 ## Key Guidelines
