@@ -1,8 +1,6 @@
 name: Track GitHub Followers
 
 on:
-  push: 
-   branches: main
   schedule:
     # Runs at 12:00, between day 1 and 31 of the month
     - cron: '0 12 1-31 * *'
