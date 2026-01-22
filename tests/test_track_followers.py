@@ -1,23 +1,14 @@
 """Unit tests for track_followers.py functions."""
 
-import sys
 from datetime import date
 from pathlib import Path
+import sys
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from track_followers import (
-    FollowerChanges,
-    build_changelog_entry,
-    compare_followers,
-    fatal,
-    fetch_followers,
-    load_followers,
-    save_followers,
-    update_changelog,
-    validate_username,
-)
+from track_followers import build_changelog_entry, compare_followers, fatal, fetch_followers, FollowerChanges, \
+                            load_followers, save_followers, update_changelog, validate_username
 
 
 class TestFollowerChanges:
@@ -78,9 +69,7 @@ class TestValidateUsername:
             # Note: Our regex only validates basic format, not all GitHub rules
             # So we only test for obvious invalid chars
             if any(c in username for c in ["_", ".", " ", "@"]) or not username:
-                assert not validate_username(username), (
-                    f"'{username}' should be invalid"
-                )
+                assert not validate_username(username), f"'{username}' should be invalid"
 
 
 class TestFatal:
@@ -212,11 +201,9 @@ class TestCompareFollowers:
 class TestBuildChangelogEntry:
     """Test the build_changelog_entry function."""
 
-    def test_entry_with_new_followers_only(self):
+    def test_entry_with_new_followers_only(self, follower_changes_new_only, test_date):
         """Test building entry with only new followers."""
-        changes = FollowerChanges(new={"alice", "bob"}, removed=set())
-        test_date = date(2024, 1, 15)
-        entry = build_changelog_entry(changes, test_date)
+        entry = build_changelog_entry(follower_changes_new_only, test_date)
 
         assert "### 2024-01-15" in entry
         assert "#### New Followers" in entry
@@ -224,11 +211,9 @@ class TestBuildChangelogEntry:
         assert "- @bob" in entry
         assert "#### Removed Followers" not in entry
 
-    def test_entry_with_removed_followers_only(self):
+    def test_entry_with_removed_followers_only(self, follower_changes_removed_only, test_date):
         """Test building entry with only removed followers."""
-        changes = FollowerChanges(new=set(), removed={"charlie", "david"})
-        test_date = date(2024, 1, 15)
-        entry = build_changelog_entry(changes, test_date)
+        entry = build_changelog_entry(follower_changes_removed_only, test_date)
 
         assert "### 2024-01-15" in entry
         assert "#### Removed Followers" in entry
@@ -236,11 +221,9 @@ class TestBuildChangelogEntry:
         assert "- @david" in entry
         assert "#### New Followers" not in entry
 
-    def test_entry_with_both_changes(self):
+    def test_entry_with_both_changes(self, follower_changes_both, test_date):
         """Test building entry with both new and removed followers."""
-        changes = FollowerChanges(new={"alice"}, removed={"bob"})
-        test_date = date(2024, 1, 15)
-        entry = build_changelog_entry(changes, test_date)
+        entry = build_changelog_entry(follower_changes_both, test_date)
 
         assert "### 2024-01-15" in entry
         assert "#### New Followers" in entry
@@ -248,10 +231,9 @@ class TestBuildChangelogEntry:
         assert "#### Removed Followers" in entry
         assert "- @bob" in entry
 
-    def test_entry_sorted_alphabetically(self):
+    def test_entry_sorted_alphabetically(self, test_date):
         """Test that followers are sorted alphabetically in entry."""
         changes = FollowerChanges(new={"charlie", "alice", "bob"}, removed=set())
-        test_date = date(2024, 1, 15)
         entry = build_changelog_entry(changes, test_date)
 
         lines = entry.split("\n")
@@ -262,13 +244,11 @@ class TestBuildChangelogEntry:
 class TestUpdateChangelog:
     """Test the update_changelog function."""
 
-    def test_create_new_changelog(self, temp_dir):
+    def test_create_new_changelog(self, temp_dir, follower_changes_both, test_date):
         """Test creating a new changelog file."""
         changelog_path = temp_dir / "CHANGELOG.md"
-        changes = FollowerChanges(new={"alice"}, removed={"bob"})
-        test_date = date(2024, 1, 15)
 
-        update_changelog(changes, changelog_path, test_date)
+        update_changelog(follower_changes_both, changelog_path, test_date)
 
         assert changelog_path.exists()
         content = changelog_path.read_text()
@@ -277,40 +257,23 @@ class TestUpdateChangelog:
         assert "- @alice" in content
         assert "- @bob" in content
 
-    def test_update_existing_changelog(self, temp_dir):
+    def test_update_existing_changelog(self, initial_changelog, follower_changes_new_only, test_date):
         """Test updating an existing changelog."""
-        changelog_path = temp_dir / "CHANGELOG.md"
-        # Create initial changelog
-        initial_content = (
-            "# Follower Changelog\n\n"
-            "This file tracks changes in GitHub followers over time.\n\n"
-            "### 2024-01-14\n"
-            "#### New Followers\n"
-            "- @charlie\n"
-        )
-        changelog_path.write_text(initial_content)
+        update_changelog(follower_changes_new_only, initial_changelog, test_date)
 
-        changes = FollowerChanges(new={"alice"}, removed=set())
-        test_date = date(2024, 1, 15)
-
-        update_changelog(changes, changelog_path, test_date)
-
-        content = changelog_path.read_text()
+        content = initial_changelog.read_text()
         assert "### 2024-01-15" in content
         assert "- @alice" in content
         assert "### 2024-01-14" in content
         assert "- @charlie" in content
 
-    def test_skip_duplicate_date(self, temp_dir, caplog):
+    def test_skip_duplicate_date(self, follower_changes_new_only, test_date, caplog, temp_dir):
         """Test that updating with same date is skipped."""
         changelog_path = temp_dir / "CHANGELOG.md"
-        initial_content = (
-            "# Follower Changelog\n\n### 2024-01-15\n#### New Followers\n- @alice\n"
-        )
+        initial_content = "# Follower Changelog\n\n### 2024-01-15\n#### New Followers\n- @alice\n"
         changelog_path.write_text(initial_content)
 
         changes = FollowerChanges(new={"bob"}, removed=set())
-        test_date = date(2024, 1, 15)
 
         update_changelog(changes, changelog_path, test_date)
 
@@ -319,83 +282,49 @@ class TestUpdateChangelog:
         assert "- @bob" not in content
         assert "already in changelog" in caplog.text
 
-    def test_new_entry_inserted_at_top(self, temp_dir):
+    def test_new_entry_inserted_at_top(self, initial_changelog, follower_changes_new_only, test_date):
         """Test that new entries are inserted at the top (most recent first)."""
-        changelog_path = temp_dir / "CHANGELOG.md"
-        initial_content = (
-            "# Follower Changelog\n\n"
-            "This file tracks changes in GitHub followers over time.\n\n"
-            "### 2024-01-14\n"
-            "#### New Followers\n"
-            "- @charlie\n"
-        )
-        changelog_path.write_text(initial_content)
+        update_changelog(follower_changes_new_only, initial_changelog, test_date)
 
-        changes = FollowerChanges(new={"alice"}, removed=set())
-        test_date = date(2024, 1, 15)
-
-        update_changelog(changes, changelog_path, test_date)
-
-        content = changelog_path.read_text()
+        content = initial_changelog.read_text()
         # Check that 2024-01-15 appears before 2024-01-14
         pos_15 = content.index("2024-01-15")
         pos_14 = content.index("2024-01-14")
         assert pos_15 < pos_14
 
-    def test_mdformat_error_handled(self, temp_dir, caplog):
+    def test_mdformat_error_handled(self, initial_changelog, follower_changes_new_only, test_date, caplog):
         """Test that mdformat errors are handled gracefully."""
-        changelog_path = temp_dir / "CHANGELOG.md"
-        # Create initial changelog so we reach the mdformat code
-        initial_content = (
-            "# Follower Changelog\n\n"
-            "This file tracks changes in GitHub followers over time.\n\n"
-            "### 2024-01-14\n"
-            "#### New Followers\n"
-            "- @charlie\n"
-        )
-        changelog_path.write_text(initial_content)
-
-        changes = FollowerChanges(new={"alice"}, removed=set())
-        test_date = date(2024, 1, 15)
-
         import logging
 
         # Capture logs from the gh-fc logger
         with caplog.at_level(logging.ERROR, logger="gh-fc"):
             with patch("track_followers.mdformat.file") as mock_mdformat:
                 mock_mdformat.side_effect = Exception("Format error")
-                update_changelog(changes, changelog_path, test_date)
+                update_changelog(follower_changes_new_only, initial_changelog, test_date)
 
         # Should still create the file even if formatting fails
-        assert changelog_path.exists()
+        assert initial_changelog.exists()
         assert "Failed to format changelog" in caplog.text
 
 
 class TestFetchFollowers:
     """Test the fetch_followers function."""
 
-    def test_fetch_followers_success(self):
+    def test_fetch_followers_success(self, mock_api, mock_follower_objects):
         """Test successful follower fetching."""
-        # Mock API and paged function
-        mock_api = Mock()
-        mock_follower1 = Mock(login="alice")
-        mock_follower2 = Mock(login="bob")
-        mock_follower3 = Mock(login="charlie")
-
         with patch("track_followers.paged") as mock_paged:
             # Simulate paged results
             mock_paged.return_value = [
-                [mock_follower1, mock_follower2],
-                [mock_follower3],
+                mock_follower_objects[:2],
+                [mock_follower_objects[2]],
             ]
             result = fetch_followers(mock_api, "testuser")
 
         assert result == ["alice", "bob", "charlie"]
         mock_paged.assert_called_once()
 
-    def test_fetch_followers_removes_duplicates(self):
+    def test_fetch_followers_removes_duplicates(self, mock_api):
         """Test that duplicate followers are removed."""
-        mock_api = Mock()
         mock_follower1 = Mock(login="alice")
         mock_follower2 = Mock(login="alice")  # Duplicate
 
@@ -405,9 +334,8 @@ class TestFetchFollowers:
 
         assert result == ["alice"]
 
-    def test_fetch_followers_sorts_results(self):
+    def test_fetch_followers_sorts_results(self, mock_api):
         """Test that followers are sorted alphabetically."""
-        mock_api = Mock()
         mock_follower1 = Mock(login="charlie")
         mock_follower2 = Mock(login="alice")
         mock_follower3 = Mock(login="bob")
@@ -418,37 +346,29 @@ class TestFetchFollowers:
 
         assert result == ["alice", "bob", "charlie"]
 
-    def test_fetch_followers_401_error(self):
+    def test_fetch_followers_401_error(self, mock_api):
         """Test handling of 401 authentication error."""
-        mock_api = Mock()
-
         with patch("track_followers.paged") as mock_paged:
             mock_paged.side_effect = Exception("401 Unauthorized")
             with pytest.raises(SystemExit):
                 fetch_followers(mock_api, "testuser")
 
-    def test_fetch_followers_404_error(self):
+    def test_fetch_followers_404_error(self, mock_api):
         """Test handling of 404 user not found error."""
-        mock_api = Mock()
-
         with patch("track_followers.paged") as mock_paged:
             mock_paged.side_effect = Exception("404 Not Found")
             with pytest.raises(SystemExit):
                 fetch_followers(mock_api, "testuser")
 
-    def test_fetch_followers_rate_limit_error(self):
+    def test_fetch_followers_rate_limit_error(self, mock_api):
         """Test handling of rate limit errors."""
-        mock_api = Mock()
-
         with patch("track_followers.paged") as mock_paged:
             mock_paged.side_effect = Exception("403 Forbidden")
             with pytest.raises(SystemExit):
                 fetch_followers(mock_api, "testuser")
 
-    def test_fetch_followers_generic_error(self):
+    def test_fetch_followers_generic_error(self, mock_api):
         """Test handling of generic API errors."""
-        mock_api = Mock()
-
         with patch("track_followers.paged") as mock_paged:
             mock_paged.side_effect = Exception("500 Internal Server Error")
             with pytest.raises(SystemExit):

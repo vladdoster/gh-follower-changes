@@ -1,8 +1,8 @@
 """Integration tests for track_followers main function."""
 
-import sys
 from datetime import date, timedelta
 from pathlib import Path
+import sys
 from unittest.mock import Mock, patch
 
 import pytest
@@ -32,14 +32,13 @@ class TestMainFunction:
 
     @patch("track_followers.fetch_followers")
     @patch("track_followers.GhApi")
-    def test_main_first_run(self, mock_ghapi, mock_fetch, temp_dir, monkeypatch):
+    def test_main_first_run(self, mock_ghapi, mock_fetch, temp_dir, monkeypatch, mock_ghapi_instance):
         """Test main function on first run (no previous data)."""
         # Change to temp directory
         monkeypatch.chdir(temp_dir)
 
         # Setup mocks
-        mock_api_instance = Mock()
-        mock_ghapi.return_value = mock_api_instance
+        mock_ghapi.return_value = mock_ghapi_instance
         mock_fetch.return_value = ["alice", "bob", "charlie"]
 
         # Run main
@@ -66,22 +65,21 @@ class TestMainFunction:
 
     @patch("track_followers.fetch_followers")
     @patch("track_followers.GhApi")
-    def test_main_with_changes(self, mock_ghapi, mock_fetch, temp_dir, monkeypatch):
+    def test_main_with_changes(
+        self,
+        mock_ghapi,
+        mock_fetch,
+        temp_dir,
+        monkeypatch,
+        mock_ghapi_instance,
+        prev_day_follower_file,
+    ):
         """Test main function detecting changes from previous day."""
         # Change to temp directory
         monkeypatch.chdir(temp_dir)
 
-        # Setup previous day data
-        data_dir = temp_dir / ".followers_data"
-        data_dir.mkdir(exist_ok=True)
-
-        yesterday = date.today() - timedelta(days=1)
-        prev_file = data_dir / yesterday.strftime("%Y-%j")
-        prev_file.write_text("alice\nbob\ncharlie\n")
-
         # Setup mocks - current followers have changes
-        mock_api_instance = Mock()
-        mock_ghapi.return_value = mock_api_instance
+        mock_ghapi.return_value = mock_ghapi_instance
         mock_fetch.return_value = [
             "alice",
             "bob",
@@ -106,23 +104,21 @@ class TestMainFunction:
     @patch("track_followers.fetch_followers")
     @patch("track_followers.GhApi")
     def test_main_no_changes(
-        self, mock_ghapi, mock_fetch, temp_dir, monkeypatch, caplog
+        self,
+        mock_ghapi,
+        mock_fetch,
+        temp_dir,
+        monkeypatch,
+        caplog,
+        mock_ghapi_instance,
+        prev_day_follower_file,
     ):
         """Test main function with no changes from previous day."""
         # Change to temp directory
         monkeypatch.chdir(temp_dir)
 
-        # Setup previous day data
-        data_dir = temp_dir / ".followers_data"
-        data_dir.mkdir(exist_ok=True)
-
-        yesterday = date.today() - timedelta(days=1)
-        prev_file = data_dir / yesterday.strftime("%Y-%j")
-        prev_file.write_text("alice\nbob\ncharlie\n")
-
         # Setup mocks - same followers as yesterday
-        mock_api_instance = Mock()
-        mock_ghapi.return_value = mock_api_instance
+        mock_ghapi.return_value = mock_ghapi_instance
         mock_fetch.return_value = ["alice", "bob", "charlie"]
 
         # Run main
@@ -142,14 +138,13 @@ class TestMainFunction:
 
     @patch("track_followers.fetch_followers")
     @patch("track_followers.GhApi")
-    def test_main_api_error(self, mock_ghapi, mock_fetch, temp_dir, monkeypatch):
+    def test_main_api_error(self, mock_ghapi, mock_fetch, temp_dir, monkeypatch, mock_ghapi_instance):
         """Test main function handling API errors."""
         # Change to temp directory
         monkeypatch.chdir(temp_dir)
 
         # Setup mocks to raise an error
-        mock_api_instance = Mock()
-        mock_ghapi.return_value = mock_api_instance
+        mock_ghapi.return_value = mock_ghapi_instance
         mock_fetch.side_effect = Exception("API Error")
 
         # Run main - should exit with error
@@ -159,16 +154,13 @@ class TestMainFunction:
 
     @patch("track_followers.fetch_followers")
     @patch("track_followers.GhApi")
-    def test_main_saves_to_correct_file(
-        self, mock_ghapi, mock_fetch, temp_dir, monkeypatch
-    ):
+    def test_main_saves_to_correct_file(self, mock_ghapi, mock_fetch, temp_dir, monkeypatch, mock_ghapi_instance):
         """Test that main saves data to date-based filename."""
         # Change to temp directory
         monkeypatch.chdir(temp_dir)
 
         # Setup mocks
-        mock_api_instance = Mock()
-        mock_ghapi.return_value = mock_api_instance
+        mock_ghapi.return_value = mock_ghapi_instance
         mock_fetch.return_value = ["alice"]
 
         # Run main
@@ -186,7 +178,15 @@ class TestMainFunction:
     @patch("track_followers.fetch_followers")
     @patch("track_followers.GhApi")
     def test_main_multiple_runs_accumulate_data(
-        self, mock_ghapi, mock_fetch, temp_dir, monkeypatch
+        self,
+        mock_ghapi,
+        mock_fetch,
+        temp_dir,
+        monkeypatch,
+        mock_ghapi_instance,
+        yesterday,
+        two_days_ago,
+        three_days_ago,
     ):
         """Test that multiple runs on different days accumulate data."""
         # Change to temp directory
@@ -196,21 +196,17 @@ class TestMainFunction:
         data_dir.mkdir(exist_ok=True)
 
         # Setup mocks
-        mock_api_instance = Mock()
-        mock_ghapi.return_value = mock_api_instance
+        mock_ghapi.return_value = mock_ghapi_instance
 
         # First run - 3 days ago
-        three_days_ago = date.today() - timedelta(days=3)
         file1 = data_dir / three_days_ago.strftime("%Y-%j")
         file1.write_text("alice\nbob\n")
 
         # Second run - 2 days ago
-        two_days_ago = date.today() - timedelta(days=2)
         file2 = data_dir / two_days_ago.strftime("%Y-%j")
         file2.write_text("alice\nbob\ncharlie\n")
 
         # Third run - yesterday
-        yesterday = date.today() - timedelta(days=1)
         file3 = data_dir / yesterday.strftime("%Y-%j")
         file3.write_text("alice\ncharlie\n")
 
