@@ -11,9 +11,9 @@ This is a Python based repository. It is primarily responsible for ingesting a G
 - Test: `uv run --group dev pytest --cov-branch --cov=track_followers tests/`
 
 ## Repository Structure
-- `pyproject.toml/`: Program details and uses semantic versioning: `pyproject.toml`
+- `pyproject.toml`: Program details and uses semantic versioning: `pyproject.toml`
 - `tests/`: Test helpers and fixtures
-- `track-followers.py`: Program entry points containing logic related to interactions with GitHub API and updating `CHANGELOG.md`
+- `track_followers.py`: Program entry points containing logic related to interactions with GitHub API and updating `CHANGELOG.md`
 
 ## Key Guidelines
 1. Follow Python best practices and idiomatic patterns
