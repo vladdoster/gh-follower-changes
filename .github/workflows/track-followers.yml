@@ -1,0 +1,39 @@
+name: Track GitHub Followers
+
+on:
+  schedule:
+    # Runs at 12:00, between day 1 and 31 of the month
+    - cron: '0 12 1-31 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  track-followers:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Track followers         
+        run: uv run track_followers.py ${{ github.repository_owner }}
+      
+      - name: Commit and push changes
+        run: |
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update follower data for $(date +%Y-%m-%d)"
+            git push
+          fi

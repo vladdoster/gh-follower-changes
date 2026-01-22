@@ -1,0 +1,15 @@
+name: Delete old workflow runs
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  workflow-cleanup:
+    uses: vladdoster/.github/.github/workflows/cleanup.yml@master
+    secrets:
+       github-token: ${{ secrets.GITHUB_TOKEN }}
