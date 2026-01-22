@@ -13,6 +13,7 @@ concurrency:
 
 permissions:
   pull-requests: write
+  contents: read
 
 jobs:
     unit_tests:
