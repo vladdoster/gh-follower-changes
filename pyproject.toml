@@ -22,14 +22,14 @@ track-followers = "track_followers:main"
 
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-ra -q --cov=track_followers --cov-report=term-missing --cov-report=html"
+addopts = "-ra -q --cov=track_followers.py --cov-report=term-missing"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 
 [tool.coverage.run]
-source = ["."]
+source = ["track_followers.py"]
 omit = ["tests/*", "test_*.py", ".venv/*", "venv/*"]
 
 [tool.coverage.report]
