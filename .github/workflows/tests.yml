@@ -31,7 +31,7 @@ jobs:
               
             - name: Run pytest
               run: |
-                  uv run --dev pytest \
+                  uv run --group dev pytest \
                       --cov-branch \
                       --cov-report=markdown-append:"$GITHUB_STEP_SUMMARY" \
                       --cov-report=xml:coverage.xml \
