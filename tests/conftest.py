@@ -11,7 +11,7 @@ def clean_dir():
     newpath = tempfile.mkdtemp()
     os.chdir(newpath)
     
-@pytest.fixture
+@pytest.fixture(scope="function")
 def temp_dir():
     """Provide a temporary directory for test files."""
     return os.getcwd()
@@ -23,12 +23,10 @@ def data_dir(temp_dir):
     data_path.mkdir(exist_ok=True)
     return data_path
 
-
 @pytest.fixture
 def changelog_path(temp_dir):
     """Provide a temporary changelog file path."""
     return temp_dir / "CHANGELOG.md"
-
 
 @pytest.fixture
 def sample_followers():
