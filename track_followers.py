@@ -11,7 +11,7 @@ from pprint import pformat
 from typing import NoReturn
 
 import mdformat
-from ghapi.all import GhApi, GhDeviceAuth, github_token, paged
+from ghapi.all import GhApi, paged
 
 logging.basicConfig(
     level=logging.DEBUG,
