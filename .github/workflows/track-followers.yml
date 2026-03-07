@@ -33,7 +33,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           BRANCH="update/$(date +%Y-%m-%d)"
-          git switch --create "${BRANCH}"
+          git switch --force-create "${BRANCH}"
           git add -A
           if git diff --staged --quiet; then
             echo "No changed files to commit"
@@ -43,7 +43,7 @@ jobs:
             gh pr create \
               --base main \
               --head "${BRANCH}" \
-              --title "chore: update follower data for $(date +%Y-%m-%d)" \
+              --fill \
               --reviewer ${{github.repository_owner}} \
               --assignee ${{github.repository_owner}} \
               --label "documentation"
