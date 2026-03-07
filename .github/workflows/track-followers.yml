@@ -16,12 +16,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
-      - name: Set up Git
+      - name: Setup Git credentials
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-      
+          git config --global user.name "${{github.repository_owner}}"
+          git config --global user.email "$(gh api user/public_emails -q '.[0].email')"
+  
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
@@ -30,10 +29,19 @@ jobs:
       
       - name: Commit and push changes
         run: |
+          BRANCH="update/$(date +%Y-%m-%d)"
+          git switch --create "${BRANCH}"
           git add -A
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
+          if git diff --cached --quiet; then
+            echo "No changed files to commit"
           else
-            git commit -m "chore: update follower data for $(date +%Y-%m-%d)"
-            git push
+            git commit --signoff -m "chore: update follower data for $(date +%Y-%m-%d)"
+            git push origin "${BRANCH}"
+            gh pr create \
+              --base main \
+              --head "${BRANCH}" \
+              --title "chore: update follower data for $(date +%Y-%m-%d)" \
+              --reviewer ${{github.repository_owner}} \
+              --assignee ${{github.repository_owner}} \
+              --label "documentation"
           fi
